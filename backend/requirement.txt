@@ -1,0 +1,7 @@
+pyramid
+pyramid_jwt
+sqlalchemy
+psycopg2-binary
+alembic
+passlib[bcrypt]
+python-dotenv
