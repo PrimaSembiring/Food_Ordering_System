@@ -2,7 +2,7 @@ import React from 'react';
 import { X, Plus, Minus, Trash2, ShoppingCart } from 'lucide-react';
 import { formatCurrency } from '../services/api';
 
-const CartModal = ({ show, onClose, cart, updateQuantity, removeItem, placeOrder, getTotal }) => {
+const CartModal = ({ show, onClose, cart, updateQuantity, removeItem, onProceedToPayment, getTotal }) => {
   if (!show) return null;
 
   return (
@@ -66,10 +66,10 @@ const CartModal = ({ show, onClose, cart, updateQuantity, removeItem, placeOrder
               </span>
             </div>
             <button
-              onClick={placeOrder}
+              onClick={onProceedToPayment}
               className="w-full py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:shadow-lg transition font-semibold"
             >
-              Place Order
+              Proceed to Payment
             </button>
           </div>
         )}
