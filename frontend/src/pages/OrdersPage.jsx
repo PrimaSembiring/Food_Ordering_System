@@ -2,7 +2,7 @@ import React from 'react';
 import { Package } from 'lucide-react';
 import OrderCard from '../components/OrderCard';
 
-const OrdersPage = ({ orders, isOwner, onUpdateStatus }) => {
+const OrdersPage = ({ orders, isOwner, onUpdateStatus, onReviewItem, reviews = [] }) => {
   return (
     <div>
       <h2 className="text-3xl font-bold text-gray-800 mb-6">
@@ -22,6 +22,8 @@ const OrdersPage = ({ orders, isOwner, onUpdateStatus }) => {
               order={order}
               isOwner={isOwner}
               onUpdateStatus={onUpdateStatus}
+              onReviewItem={onReviewItem}
+              reviews={reviews}
             />
           ))}
         </div>

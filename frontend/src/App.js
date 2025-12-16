@@ -136,6 +136,7 @@ function App() {
 
   // Review handlers
   const handleReviewItem = (orderId, item) => {
+    console.log('Review item clicked:', orderId, item); // Debug
     setReviewingOrderId(orderId);
     setReviewingItem(item);
     setShowReviewModal(true);
@@ -153,10 +154,13 @@ function App() {
       date: new Date().toLocaleString()
     };
     
+    console.log('New review:', newReview); // Debug
     setReviews([newReview, ...reviews]);
     setShowReviewModal(false);
     setReviewingItem(null);
     setReviewingOrderId(null);
+    
+    alert('✅ Review submitted successfully!');
   };
 
   const handleViewReviews = (menuItem) => {
@@ -244,6 +248,7 @@ function App() {
             isOwner={currentUser.role === 'owner'}
             onUpdateStatus={updateOrderStatus}
             onReviewItem={handleReviewItem}
+            reviews={reviews}
           />
         ) : activeView === 'manage' && currentUser.role === 'owner' ? (
           <ManageMenuPage
