@@ -6,6 +6,8 @@ import AuthModal from './components/AuthModal';
 import CartModal from './components/CartModal';
 import ReviewModal from './components/ReviewModal';
 import MenuReviewsModal from './components/MenuReviewsModal';
+import PaymentModal from './components/PaymentModal';
+import PaymentProofModal from './components/PaymentProofModal';
 import MenuPage from './pages/MenuPage';
 import foodbackground from './Assets/Backgroundmakanan.jpeg';
 import OrdersPage from './pages/OrdersPage';
@@ -31,6 +33,12 @@ function App() {
   // Menu Reviews Modal States
   const [showMenuReviewsModal, setShowMenuReviewsModal] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState(null);
+
+  // Payment Modal States
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showPaymentProofModal, setShowPaymentProofModal] = useState(false);
+  const [paymentProof, setPaymentProof] = useState(null);
+  const [pendingOrder, setPendingOrder] = useState(null);
 
   // Authentication handlers
   const handleAuth = (authForm, authMode, userRole) => {
@@ -101,10 +109,9 @@ function App() {
       date: new Date().toLocaleString()
     };
     
-    setOrders([newOrder, ...orders]);
-    setCart([]);
+    setPendingOrder(newOrder);
     setShowCart(false);
-    setActiveView('orders');
+    setShowPaymentModal(true);
   };
 
   // Menu handlers
@@ -169,6 +176,43 @@ function App() {
     setShowMenuReviewsModal(true);
   };
 
+  // Payment handlers
+  const handleConfirmPayment = (paymentData) => {
+    // Store payment proof
+    setPaymentProof(paymentData.proof);
+    
+    // Create order with payment info
+    const orderWithPayment = {
+      ...pendingOrder,
+      status: 'pending',
+      paymentMethod: paymentData.method,
+      paymentMethodId: paymentData.methodId,
+      paymentProof: paymentData.proof,
+      paymentDate: new Date().toLocaleString()
+    };
+    
+    // Add order to list
+    setOrders([orderWithPayment, ...orders]);
+    setCart([]);
+    
+    // Show payment proof
+    setShowPaymentModal(false);
+    setShowPaymentProofModal(true);
+    
+    // Close modals and navigate after a delay
+    setTimeout(() => {
+      setShowPaymentProofModal(false);
+      setActiveView('orders');
+      setPendingOrder(null);
+      alert('✅ Payment berhasil! Pesanan Anda sedang diproses.');
+    }, 3000);
+  };
+
+  const handleViewPaymentProof = (proof) => {
+    setPaymentProof(proof);
+    setShowPaymentProofModal(true);
+  };
+
   const userOrders = currentUser?.role === 'customer' 
     ? orders.filter(o => o.customerId === currentUser.id)
     : orders;
@@ -197,7 +241,7 @@ function App() {
         cart={cart}
         updateQuantity={updateCartQuantity}
         removeItem={removeFromCart}
-        placeOrder={placeOrder}
+        onProceedToPayment={placeOrder}
         getTotal={getCartTotal}
       />
 
@@ -220,6 +264,22 @@ function App() {
         }}
         menuItem={selectedMenuItem}
         reviews={selectedMenuItem ? reviews.filter(r => r.menuItemId === selectedMenuItem.id) : []}
+      />
+
+      <PaymentModal
+        show={showPaymentModal}
+        onClose={() => {
+          setShowPaymentModal(false);
+          setPendingOrder(null);
+        }}
+        cartTotal={pendingOrder?.total || 0}
+        onConfirmPayment={handleConfirmPayment}
+      />
+
+      <PaymentProofModal
+        show={showPaymentProofModal}
+        onClose={() => setShowPaymentProofModal(false)}
+        proofImage={paymentProof}
       />
 
       <main className="max-w-7xl mx-auto px-4 py-8">
@@ -280,6 +340,7 @@ function App() {
             isOwner={currentUser.role === 'owner'}
             onUpdateStatus={updateOrderStatus}
             onReviewItem={handleReviewItem}
+            onViewPaymentProof={handleViewPaymentProof}
             reviews={reviews}
           />
         ) : (

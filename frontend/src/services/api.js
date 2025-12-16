@@ -101,3 +101,81 @@ export const calculateAverageRating = (reviews) => {
   const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
   return (sum / reviews.length).toFixed(1);
 };
+
+// Payment methods
+export const paymentMethods = [
+  {
+    id: 'qris',
+    name: 'QRIS',
+    type: 'qr',
+    icon: '📱',
+    description: 'Scan QR Code dengan aplikasi e-wallet'
+  },
+  {
+    id: 'dana',
+    name: 'DANA',
+    type: 'ewallet',
+    icon: '💳',
+    account: '081234567890',
+    accountName: 'FoodHub Restaurant'
+  },
+  {
+    id: 'gopay',
+    name: 'GoPay',
+    type: 'ewallet',
+    icon: '💚',
+    account: '081234567890',
+    accountName: 'FoodHub Restaurant'
+  },
+  {
+    id: 'ovo',
+    name: 'OVO',
+    type: 'ewallet',
+    icon: '💜',
+    account: '081234567890',
+    accountName: 'FoodHub Restaurant'
+  },
+  {
+    id: 'bca',
+    name: 'Bank BCA',
+    type: 'bank',
+    icon: '🏦',
+    account: '1234567890',
+    accountName: 'FoodHub Restaurant'
+  },
+  {
+    id: 'mandiri',
+    name: 'Bank Mandiri',
+    type: 'bank',
+    icon: '🏦',
+    account: '9876543210',
+    accountName: 'FoodHub Restaurant'
+  },
+  {
+    id: 'bri',
+    name: 'Bank BRI',
+    type: 'bank',
+    icon: '🏦',
+    account: '5555666677778888',
+    accountName: 'FoodHub Restaurant'
+  }
+];
+
+// Payment status types
+export const paymentStatus = {
+  WAITING_PAYMENT: 'waiting_payment',
+  PAYMENT_UPLOADED: 'payment_uploaded',
+  PAYMENT_CONFIRMED: 'payment_confirmed',
+  PAYMENT_REJECTED: 'payment_rejected'
+};
+
+// Order status with payment
+export const orderStatus = {
+  WAITING_PAYMENT: 'waiting_payment',
+  PAYMENT_UPLOADED: 'payment_uploaded',
+  PENDING: 'pending',
+  PROCESSING: 'processing',
+  READY: 'ready',
+  DELIVERED: 'delivered',
+  CANCELLED: 'cancelled'
+};
