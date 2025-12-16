@@ -1,5 +1,5 @@
 from pyramid.view import view_config
-from app.jwt import create_jwt
+from pyramid_jwt import create_jwt
 from app.database import SessionLocal
 from app.models.user import User
 from app.security import hash_password, verify_password
