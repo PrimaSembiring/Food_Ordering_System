@@ -4,6 +4,8 @@ import './App.css';
 import Header from './components/Header';
 import AuthModal from './components/AuthModal';
 import CartModal from './components/CartModal';
+import ReviewModal from './components/ReviewModal';
+import MenuReviewsModal from './components/MenuReviewsModal';
 import MenuPage from './pages/MenuPage';
 import foodbackground from './Assets/Backgroundmakanan.jpeg';
 import OrdersPage from './pages/OrdersPage';
@@ -19,6 +21,16 @@ function App() {
   const [menuItems, setMenuItems] = useState(initialMenuItems);
   const [cart, setCart] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  
+  // Review Modal States
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewingItem, setReviewingItem] = useState(null);
+  const [reviewingOrderId, setReviewingOrderId] = useState(null);
+  
+  // Menu Reviews Modal States
+  const [showMenuReviewsModal, setShowMenuReviewsModal] = useState(false);
+  const [selectedMenuItem, setSelectedMenuItem] = useState(null);
 
   // Authentication handlers
   const handleAuth = (authForm, authMode, userRole) => {
@@ -123,6 +135,40 @@ function App() {
     ));
   };
 
+  // Review handlers
+  const handleReviewItem = (orderId, item) => {
+    console.log('Review item clicked:', orderId, item); // Debug
+    setReviewingOrderId(orderId);
+    setReviewingItem(item);
+    setShowReviewModal(true);
+  };
+
+  const handleSubmitReview = (reviewData) => {
+    const newReview = {
+      id: Date.now(),
+      orderId: reviewingOrderId,
+      menuItemId: reviewingItem.id,
+      customerId: currentUser.id,
+      customerName: currentUser.name,
+      rating: reviewData.rating,
+      comment: reviewData.comment,
+      date: new Date().toLocaleString()
+    };
+    
+    console.log('New review:', newReview); // Debug
+    setReviews([newReview, ...reviews]);
+    setShowReviewModal(false);
+    setReviewingItem(null);
+    setReviewingOrderId(null);
+    
+    alert('✅ Review submitted successfully!');
+  };
+
+  const handleViewReviews = (menuItem) => {
+    setSelectedMenuItem(menuItem);
+    setShowMenuReviewsModal(true);
+  };
+
   const userOrders = currentUser?.role === 'customer' 
     ? orders.filter(o => o.customerId === currentUser.id)
     : orders;
@@ -155,60 +201,70 @@ function App() {
         getTotal={getCartTotal}
       />
 
+      <ReviewModal
+        show={showReviewModal}
+        onClose={() => {
+          setShowReviewModal(false);
+          setReviewingItem(null);
+          setReviewingOrderId(null);
+        }}
+        orderItem={reviewingItem}
+        onSubmitReview={handleSubmitReview}
+      />
+
+      <MenuReviewsModal
+        show={showMenuReviewsModal}
+        onClose={() => {
+          setShowMenuReviewsModal(false);
+          setSelectedMenuItem(null);
+        }}
+        menuItem={selectedMenuItem}
+        reviews={selectedMenuItem ? reviews.filter(r => r.menuItemId === selectedMenuItem.id) : []}
+      />
+
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {!currentUser ? (
-          <div className="bg-white min-h-[80vh]">
-            <div className="text-white py-16 md:py-24 relative overflow-hidden">
-                <img
-                  src={foodbackground} alt="Latar Belakang Makanan" 
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-                <div className="max-w-4xl mx-auto text-center relative z-10">   
-                    <Store className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-4" />           
-                    <h2 className="text-4xl md:text-5xl font-extrabold mb-3">Makan enak? FoodHub-in aja.</h2>
-                    <p className="text-xl md:text-2xl font-light mb-8">
-                        Pesan yang bikin perut nyaman langsung di sini, semudah di aplikasi.
-                    </p>
+    
+        {/* 1. HEADER GOFOOD: Tampil HANYA JIKA BELUM LOGIN (!currentUser) */}
+        {!currentUser && (
+          <div className="text-white py-20 md:py-24 relative overflow-hidden mb-12">
+              <img
+                  src={foodbackground} 
+                  alt="Latar Belakang Makanan"
+                  // Menambahkan opacity untuk membuat gambar samar
+                  className="absolute inset-0 w-full h-full object-cover rounded-xl" 
+              />
 
-                    {/* Kotak Pencarian/Lokasi Putih di tengah */}
-                    <div className="bg-white p-4 rounded-xl shadow-2xl inline-block -mb-16 transform translate-y-1/2">
-                        <div className="flex items-center gap-4">
-                            <input
-                                type="text"
-                                placeholder="Ketik Makananmu"
-                                className="px-3 py-2 text-lg text-gray-800 focus:outline-none w-64"
-                            />
-                            <button 
-                                // Tombol ini bisa disetel untuk membuka AuthModal agar user login sebelum eksplor
-                                onClick={() => setShowAuth(true)}
-                                className="bg-green-500 text-white px-5 py-2 rounded-lg font-semibold hover:bg-green-600 transition"
-                            >
-                                Eksplor
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+              <div className="max-w-4xl mx-auto text-center relative z-10">
+                  <Store className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-4" />
+                  <h2 className="text-4xl md:text-5xl font-extrabold mb-3">Makan enak? FoodHub-in aja.</h2>
+                  <p className="text-xl md:text-2xl font-light mb-8">
+                      Pesan yang bikin perut nyaman langsung di sini, semudah di aplikasi.
+                  </p>
 
-            {/* Bagian di bawah (Setelah Kotak Pencarian) */}
-            <div className="pt-24 pb-12 text-center">
-                <h3 className="text-2xl font-bold text-gray-700">Apa aja nih yang enak di FoodHub?</h3>
-                <p className="text-gray-500 mt-2">Yuk cari menu makanan yang kamu suka.</p>
-            </div>
+                  {/* Kotak Pencarian/Lokasi Putih di tengah */}
+                  <div className="bg-white p-4 rounded-xl shadow-2xl inline-block -mb-16 transform translate-y-1/2">
+                      <div className="flex items-center gap-4">
+                          <input
+                              type="text"
+                              placeholder="Ketik makananmu"
+                              className="px-3 py-2 text-lg text-gray-800 focus:outline-none w-64"
+                          />
+                          <button 
+                              onClick={() => setShowAuth(true)}
+                              className="bg-green-500 text-white px-5 py-2 rounded-lg font-semibold hover:bg-green-600 transition"
+                          >
+                              Eksplor
+                          </button>
+                      </div>
+                  </div>
+              </div>
           </div>
-        ) : activeView === 'menu' ? (
-          <MenuPage
-            menuItems={menuItems}
-            onAddToCart={addToCart}
-            isCustomer={currentUser.role === 'customer'}
-          />
-        ) : activeView === 'orders' ? (
-          <OrdersPage
-            orders={userOrders}
-            isOwner={currentUser.role === 'owner'}
-            onUpdateStatus={updateOrderStatus}
-          />
-        ) : activeView === 'manage' && currentUser.role === 'owner' ? (
+        )}
+
+        {/* 2. LOGIKA ROUTING UTAMA */}
+
+        {/* Tampilkan Manage Page HANYA jika owner sudah login dan activeView='manage' */}
+        {currentUser && activeView === 'manage' && currentUser.role === 'owner' ? (
           <ManageMenuPage
             menuItems={menuItems}
             currentUser={currentUser}
@@ -216,7 +272,26 @@ function App() {
             onUpdateMenu={handleUpdateMenu}
             onDeleteMenu={handleDeleteMenu}
           />
-        ) : null}
+        ) : 
+        /* Tampilkan Orders Page HANYA jika sudah login dan activeView='orders' */
+        currentUser && activeView === 'orders' ? (
+          <OrdersPage
+            orders={userOrders}
+            isOwner={currentUser.role === 'owner'}
+            onUpdateStatus={updateOrderStatus}
+            onReviewItem={handleReviewItem}
+            reviews={reviews}
+          />
+        ) : (
+          /* KONDISI DEFAULT: TAMPILKAN MENU PAGE (untuk semua orang, baik login maupun belum) */
+          <MenuPage
+            menuItems={menuItems}
+            onAddToCart={addToCart}
+            isCustomer={currentUser?.role === 'customer'}
+            reviews={reviews}
+            onViewReviews={handleViewReviews}
+          />
+        )}
       </main>
     </div>
   );

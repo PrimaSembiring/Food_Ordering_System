@@ -1,11 +1,27 @@
 import React from 'react';
-import { Plus } from 'lucide-react';
-import { formatCurrency } from '../services/api';
+import { Plus, Star, MessageSquare } from 'lucide-react';
+import { formatCurrency, calculateAverageRating } from '../services/api';
 
-const MenuCard = ({ item, onAddToCart, isCustomer }) => {
+const MenuCard = ({ item, onAddToCart, onViewReviews, isCustomer, reviews = [] }) => {
+  const averageRating = calculateAverageRating(reviews);
+  const reviewCount = reviews.length;
+
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition card-hover">
-      <img src={item.image} alt={item.name} className="w-full h-48 object-cover" />
+      <div className="relative">
+        <img src={item.image} alt={item.name} className="w-full h-48 object-cover" />
+        
+        {/* Rating Badge - Muncul di gambar jika ada review */}
+        {reviewCount > 0 && (
+          <div className="absolute top-3 right-3 bg-white rounded-lg px-3 py-1.5 shadow-lg">
+            <div className="flex items-center space-x-1">
+              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+              <span className="font-bold text-gray-800">{averageRating}</span>
+            </div>
+          </div>
+        )}
+      </div>
+      
       <div className="p-5">
         <div className="flex justify-between items-start mb-2">
           <h3 className="text-lg font-bold text-gray-800">{item.name}</h3>
@@ -13,9 +29,35 @@ const MenuCard = ({ item, onAddToCart, isCustomer }) => {
             {item.category}
           </span>
         </div>
+
+        {/* Rating & Review Count - Clickable */}
+        {reviewCount > 0 && (
+          <button
+            onClick={() => onViewReviews && onViewReviews(item)}
+            className="flex items-center space-x-2 mb-3 hover:bg-gray-50 px-2 py-1 -ml-2 rounded transition"
+          >
+            <div className="flex items-center space-x-1">
+              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+              <span className="text-sm font-semibold text-gray-700">{averageRating}</span>
+            </div>
+            <div className="flex items-center space-x-1 text-gray-500">
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span className="text-sm">({reviewCount} reviews)</span>
+            </div>
+          </button>
+        )}
+
+        {/* Jika belum ada review */}
+        {reviewCount === 0 && (
+          <div className="mb-3 text-sm text-gray-400 italic">
+            No reviews yet
+          </div>
+        )}
+        
         <p className="text-2xl font-bold text-orange-600 mb-4">
           {formatCurrency(item.price)}
         </p>
+        
         {isCustomer && (
           <button
             onClick={() => onAddToCart(item)}
