@@ -3,7 +3,7 @@ import { Search } from 'lucide-react';
 import MenuCard from '../components/MenuCard';
 import { categories } from '../services/api';
 
-const MenuPage = ({ menuItems, onAddToCart, isCustomer }) => {
+const MenuPage = ({ menuItems, onAddToCart, isCustomer, reviews, onViewReviews }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
@@ -54,7 +54,9 @@ const MenuPage = ({ menuItems, onAddToCart, isCustomer }) => {
             key={item.id}
             item={item}
             onAddToCart={onAddToCart}
+            onViewReviews={onViewReviews}
             isCustomer={isCustomer}
+            reviews={reviews.filter(r => r.menuItemId === item.id)}
           />
         ))}
       </div>

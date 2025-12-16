@@ -1,8 +1,8 @@
 import React from 'react';
-import { Clock, CheckCircle, Package, Truck } from 'lucide-react';
+import { Clock, CheckCircle, Package, Truck, Star } from 'lucide-react';
 import { formatCurrency } from '../services/api';
 
-const OrderCard = ({ order, isOwner, onUpdateStatus }) => {
+const OrderCard = ({ order, isOwner, onUpdateStatus, onReviewItem }) => {
   const getStatusIcon = (status) => {
     switch(status) {
       case 'pending': return <Clock className="w-5 h-5" />;
@@ -42,7 +42,18 @@ const OrderCard = ({ order, isOwner, onUpdateStatus }) => {
       <div className="border-t pt-4 mb-4">
         {order.items.map(item => (
           <div key={item.id} className="flex justify-between items-center py-2">
-            <span className="text-gray-700">{item.name} x{item.quantity}</span>
+            <div className="flex-1">
+              <span className="text-gray-700">{item.name} x{item.quantity}</span>
+              {!isOwner && order.status === 'delivered' && (
+                <button
+                  onClick={() => onReviewItem && onReviewItem(order.id, item)}
+                  className="ml-3 text-orange-500 hover:text-orange-600 text-sm flex items-center space-x-1"
+                >
+                  <Star className="w-4 h-4" />
+                  <span>Review</span>
+                </button>
+              )}
+            </div>
             <span className="text-gray-800 font-medium">
               {formatCurrency(item.price * item.quantity)}
             </span>

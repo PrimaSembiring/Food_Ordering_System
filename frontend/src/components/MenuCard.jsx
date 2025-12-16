@@ -1,8 +1,11 @@
 import React from 'react';
-import { Plus } from 'lucide-react';
-import { formatCurrency } from '../services/api';
+import { Plus, Star } from 'lucide-react';
+import { formatCurrency, calculateAverageRating } from '../services/api';
 
-const MenuCard = ({ item, onAddToCart, isCustomer }) => {
+const MenuCard = ({ item, onAddToCart, onViewReviews, isCustomer, reviews = [] }) => {
+  const averageRating = calculateAverageRating(reviews);
+  const reviewCount = reviews.length;
+
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition card-hover">
       <img src={item.image} alt={item.name} className="w-full h-48 object-cover" />
@@ -13,9 +16,23 @@ const MenuCard = ({ item, onAddToCart, isCustomer }) => {
             {item.category}
           </span>
         </div>
+
+        {/* Rating Display */}
+        {reviewCount > 0 && (
+          <button
+            onClick={() => onViewReviews && onViewReviews(item)}
+            className="flex items-center space-x-1 mb-2 hover:underline"
+          >
+            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+            <span className="text-sm font-semibold text-gray-700">{averageRating}</span>
+            <span className="text-sm text-gray-500">({reviewCount})</span>
+          </button>
+        )}
+        
         <p className="text-2xl font-bold text-orange-600 mb-4">
           {formatCurrency(item.price)}
         </p>
+        
         {isCustomer && (
           <button
             onClick={() => onAddToCart(item)}

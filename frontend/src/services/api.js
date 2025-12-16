@@ -80,3 +80,24 @@ export const registerUser = async (name, email, password, role) => {
     role: role
   };
 };
+
+// Review API
+export const createReview = async (review) => {
+  // Mock create review - replace with actual API call
+  return {
+    id: Date.now(),
+    ...review,
+    date: new Date().toLocaleString()
+  };
+};
+
+export const getMenuReviews = async (menuItemId) => {
+  // Mock get reviews - replace with actual API call
+  return [];
+};
+
+export const calculateAverageRating = (reviews) => {
+  if (!reviews || reviews.length === 0) return 0;
+  const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
+  return (sum / reviews.length).toFixed(1);
+};

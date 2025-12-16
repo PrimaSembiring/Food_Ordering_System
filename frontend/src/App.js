@@ -4,6 +4,8 @@ import './App.css';
 import Header from './components/Header';
 import AuthModal from './components/AuthModal';
 import CartModal from './components/CartModal';
+import ReviewModal from './components/ReviewModal';
+import MenuReviewsModal from './components/MenuReviewsModal';
 import MenuPage from './pages/MenuPage';
 import OrdersPage from './pages/OrdersPage';
 import ManageMenuPage from './pages/ManageMenuPage';
@@ -18,6 +20,16 @@ function App() {
   const [menuItems, setMenuItems] = useState(initialMenuItems);
   const [cart, setCart] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  
+  // Review Modal States
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewingItem, setReviewingItem] = useState(null);
+  const [reviewingOrderId, setReviewingOrderId] = useState(null);
+  
+  // Menu Reviews Modal States
+  const [showMenuReviewsModal, setShowMenuReviewsModal] = useState(false);
+  const [selectedMenuItem, setSelectedMenuItem] = useState(null);
 
   // Authentication handlers
   const handleAuth = (authForm, authMode, userRole) => {
@@ -122,6 +134,36 @@ function App() {
     ));
   };
 
+  // Review handlers
+  const handleReviewItem = (orderId, item) => {
+    setReviewingOrderId(orderId);
+    setReviewingItem(item);
+    setShowReviewModal(true);
+  };
+
+  const handleSubmitReview = (reviewData) => {
+    const newReview = {
+      id: Date.now(),
+      orderId: reviewingOrderId,
+      menuItemId: reviewingItem.id,
+      customerId: currentUser.id,
+      customerName: currentUser.name,
+      rating: reviewData.rating,
+      comment: reviewData.comment,
+      date: new Date().toLocaleString()
+    };
+    
+    setReviews([newReview, ...reviews]);
+    setShowReviewModal(false);
+    setReviewingItem(null);
+    setReviewingOrderId(null);
+  };
+
+  const handleViewReviews = (menuItem) => {
+    setSelectedMenuItem(menuItem);
+    setShowMenuReviewsModal(true);
+  };
+
   const userOrders = currentUser?.role === 'customer' 
     ? orders.filter(o => o.customerId === currentUser.id)
     : orders;
@@ -154,6 +196,27 @@ function App() {
         getTotal={getCartTotal}
       />
 
+      <ReviewModal
+        show={showReviewModal}
+        onClose={() => {
+          setShowReviewModal(false);
+          setReviewingItem(null);
+          setReviewingOrderId(null);
+        }}
+        orderItem={reviewingItem}
+        onSubmitReview={handleSubmitReview}
+      />
+
+      <MenuReviewsModal
+        show={showMenuReviewsModal}
+        onClose={() => {
+          setShowMenuReviewsModal(false);
+          setSelectedMenuItem(null);
+        }}
+        menuItem={selectedMenuItem}
+        reviews={selectedMenuItem ? reviews.filter(r => r.menuItemId === selectedMenuItem.id) : []}
+      />
+
       <main className="max-w-7xl mx-auto px-4 py-8">
         {!currentUser ? (
           <div className="text-center py-20">
@@ -172,12 +235,15 @@ function App() {
             menuItems={menuItems}
             onAddToCart={addToCart}
             isCustomer={currentUser.role === 'customer'}
+            reviews={reviews}
+            onViewReviews={handleViewReviews}
           />
         ) : activeView === 'orders' ? (
           <OrdersPage
             orders={userOrders}
             isOwner={currentUser.role === 'owner'}
             onUpdateStatus={updateOrderStatus}
+            onReviewItem={handleReviewItem}
           />
         ) : activeView === 'manage' && currentUser.role === 'owner' ? (
           <ManageMenuPage
