@@ -1,11 +1,12 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from app.database import Base
+from datetime import datetime
 
 class Order(Base):
     __tablename__ = "orders"
+
     id = Column(Integer, primary_key=True)
-    customerId = Column(Integer)
-    customerName = Column(String)
+    customer_id = Column(Integer, ForeignKey("users.id"))
     total = Column(Integer)
     status = Column(String)
-    date = Column(String)
+    order_date = Column(DateTime, default=datetime.utcnow)
