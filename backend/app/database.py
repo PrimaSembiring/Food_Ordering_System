@@ -1,17 +1,18 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-from pyramid.threadlocal import get_current_registry
+import os
+
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://postgres:ragilbayu123@localhost:5432/db_makanan"
+)
+
+engine = create_engine(DATABASE_URL)
+
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
+)
 
 Base = declarative_base()
-SessionLocal = None
-
-def get_engine():
-    settings = get_current_registry().settings
-    return create_engine(settings["sqlalchemy.url"])
-
-def get_session():
-    global SessionLocal
-    if SessionLocal is None:
-        engine = get_engine()
-        SessionLocal = sessionmaker(bind=engine)
-    return SessionLocal()
