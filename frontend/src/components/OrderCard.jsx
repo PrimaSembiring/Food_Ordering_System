@@ -1,4 +1,5 @@
 import React from 'react';
+// Import icon Check, yang akan digunakan untuk status 'received'
 import { Clock, CheckCircle, Package, Truck, Star, Check, CreditCard, XCircle, AlertCircle, Eye } from 'lucide-react';
 import { formatCurrency } from '../services/api';
 
@@ -11,6 +12,8 @@ const OrderCard = ({ order, isOwner, onUpdateStatus, onReviewItem, onViewPayment
       case 'processing': return <Package className="w-5 h-5" />;
       case 'ready': return <CheckCircle className="w-5 h-5" />;
       case 'delivered': return <Truck className="w-5 h-5" />;
+      // Kode baru: Icon untuk status 'received'
+      case 'received': return <Check className="w-5 h-5" />; 
       case 'cancelled': return <XCircle className="w-5 h-5" />;
       default: return <Clock className="w-5 h-5" />;
     }
@@ -24,6 +27,8 @@ const OrderCard = ({ order, isOwner, onUpdateStatus, onReviewItem, onViewPayment
       case 'processing': return 'bg-blue-100 text-blue-800';
       case 'ready': return 'bg-green-100 text-green-800';
       case 'delivered': return 'bg-gray-100 text-gray-800';
+      // Kode baru: Warna untuk status 'received' (latar hijau, teks putih)
+      case 'received': return 'bg-green-600 text-white'; 
       case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -37,6 +42,8 @@ const OrderCard = ({ order, isOwner, onUpdateStatus, onReviewItem, onViewPayment
       case 'processing': return 'Processing';
       case 'ready': return 'Ready';
       case 'delivered': return 'Delivered';
+      // Kode baru: Teks untuk status 'received'
+      case 'received': return 'Pesanan Telah Diterima'; 
       case 'cancelled': return 'Cancelled';
       default: return status;
     }
@@ -66,6 +73,7 @@ const OrderCard = ({ order, isOwner, onUpdateStatus, onReviewItem, onViewPayment
             <p className="font-semibold text-gray-800 mt-1">Customer: {order.customerName}</p>
           )}
         </div>
+        {/* Menggunakan getStatusColor dan getStatusText yang sudah diupdate */}
         <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${getStatusColor(order.status)}`}>
           {getStatusIcon(order.status)}
           <span className="font-semibold capitalize">{getStatusText(order.status)}</span>
@@ -108,8 +116,9 @@ const OrderCard = ({ order, isOwner, onUpdateStatus, onReviewItem, onViewPayment
                   </span>
                 </div>
                 
-                {/* Tombol Review - Hanya untuk customer & delivered order */}
-                {!isOwner && order.status === 'delivered' && (
+                {/* Tombol Review - Hanya untuk customer & received order (kode baru) */}
+                {/* Diubah dari order.status === 'delivered' menjadi order.status === 'received' */}
+                {!isOwner && order.status === 'received' && ( 
                   <div className="mt-2">
                     {reviewed ? (
                       <div className="inline-flex items-center space-x-2 px-3 py-1.5 bg-green-100 text-green-700 text-sm rounded-lg">
@@ -218,31 +227,58 @@ const OrderCard = ({ order, isOwner, onUpdateStatus, onReviewItem, onViewPayment
               Mark as Delivered
             </button>
           )}
+          {/* Status 'delivered' ke 'received' hanya dilakukan oleh customer, 
+          jadi tidak perlu ada tombol untuk owner di sini */}
         </div>
       )}
 
-      {/* Customer Payment Reminder */}
-      {!isOwner && order.status === 'waiting_payment' && (
-        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-sm text-yellow-800">
-            <strong>⚠️ Action Required:</strong> Please complete your payment to proceed with this order.
-          </p>
-        </div>
-      )}
+      {/* Customer Actions / Reminders */}
+      {!isOwner && (
+        <div className="mt-4 space-y-2">
+          {/* Kode baru: Tombol Konfirmasi Penerimaan untuk Customer */}
+          {order.status === 'delivered' && (
+            <button
+              // Memanggil onUpdateStatus dengan status baru 'received'
+              onClick={() => onUpdateStatus(order.id, 'received')}
+              className="w-full py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-semibold shadow-lg"
+            >
+              <Check className="w-5 h-5 inline mr-2" />
+              Pesanan Telah Sampai / Diterima
+            </button>
+          )}
+          
+          {/* Existing Customer Reminders */}
+          {order.status === 'waiting_payment' && (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                <strong>⚠️ Action Required:</strong> Please complete your payment to proceed with this order.
+              </p>
+            </div>
+          )}
 
-      {!isOwner && order.status === 'payment_uploaded' && (
-        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-800">
-            <strong>ℹ️ Payment Under Review:</strong> Your payment is being verified by the restaurant.
-          </p>
-        </div>
-      )}
+          {order.status === 'payment_uploaded' && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <strong>ℹ️ Payment Under Review:</strong> Your payment is being verified by the restaurant.
+              </p>
+            </div>
+          )}
 
-      {!isOwner && order.status === 'cancelled' && (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-800">
-            <strong>✗ Order Cancelled:</strong> This order has been cancelled. Payment was not verified.
-          </p>
+          {order.status === 'cancelled' && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-800">
+                <strong>✗ Order Cancelled:</strong> This order has been cancelled. Payment was not verified.
+              </p>
+            </div>
+          )}
+          {/* Kode baru: Informasi setelah status 'received' (opsional) */}
+          {order.status === 'received' && (
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-800">
+                Terima kasih telah mengkonfirmasi penerimaan pesanan. Anda sekarang dapat memberikan ulasan!
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
