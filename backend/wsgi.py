@@ -1,19 +1,12 @@
-import sys
 import os
+import sys
 
-# Add the backend directory to the path
+# Tambahkan backend ke PYTHONPATH
 sys.path.insert(0, os.path.dirname(__file__))
 
-from waitress import serve
-from app import main
+from pyramid.paster import get_app, setup_logging
 
-if __name__ == '__main__':
-    # Create the WSGI app
-    settings = {
-        'sqlalchemy.url': 'sqlite:///./test.db'
-    }
-    app = main({}, **settings)
-    
-    # Serve the app
-    print("Starting server on http://0.0.0.0:8000")
-    serve(app, host='0.0.0.0', port=8000)
+
+def main(global_config, **settings):
+    setup_logging(global_config.get('__file__'))
+    return get_app(global_config.get('__file__'), **settings)
