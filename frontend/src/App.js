@@ -9,6 +9,7 @@ import MenuReviewsModal from './components/MenuReviewsModal';
 import PaymentModal from './components/PaymentModal';
 import PaymentProofModal from './components/PaymentProofModal';
 import MenuPage from './pages/MenuPage';
+import foodbackground from './Assets/Backgroundmakanan.jpeg';
 import OrdersPage from './pages/OrdersPage';
 import ManageMenuPage from './pages/ManageMenuPage';
 import { initialMenuItems } from './services/api';
@@ -283,16 +284,44 @@ function App() {
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {!currentUser ? (
-          <div className="text-center py-20">
-            <Store className="w-24 h-24 text-orange-300 mx-auto mb-6" />
-            <h2 className="text-4xl font-bold text-gray-800 mb-4">Welcome to FoodHub</h2>
-            <p className="text-xl text-gray-600 mb-8">Please login or register to continue</p>
-            <button
-              onClick={() => setShowAuth(true)}
-              className="px-8 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:shadow-lg transition text-lg font-semibold"
-            >
-              Get Started
-            </button>
+          <div className="bg-white min-h-[80vh]">
+            <div className="text-white py-16 md:py-24 relative overflow-hidden">
+                <img
+                  src={foodbackground} alt="Latar Belakang Makanan" 
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                <div className="max-w-4xl mx-auto text-center relative z-10">   
+                    <Store className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-4" />           
+                    <h2 className="text-4xl md:text-5xl font-extrabold mb-3">Makan enak? FoodHub-in aja.</h2>
+                    <p className="text-xl md:text-2xl font-light mb-8">
+                        Pesan yang bikin perut nyaman langsung di sini, semudah di aplikasi.
+                    </p>
+
+                    {/* Kotak Pencarian/Lokasi Putih di tengah */}
+                    <div className="bg-white p-4 rounded-xl shadow-2xl inline-block -mb-16 transform translate-y-1/2">
+                        <div className="flex items-center gap-4">
+                            <input
+                                type="text"
+                                placeholder="Ketik Makananmu"
+                                className="px-3 py-2 text-lg text-gray-800 focus:outline-none w-64"
+                            />
+                            <button 
+                                // Tombol ini bisa disetel untuk membuka AuthModal agar user login sebelum eksplor
+                                onClick={() => setShowAuth(true)}
+                                className="bg-green-500 text-white px-5 py-2 rounded-lg font-semibold hover:bg-green-600 transition"
+                            >
+                                Eksplor
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Bagian di bawah (Setelah Kotak Pencarian) */}
+            <div className="pt-24 pb-12 text-center">
+                <h3 className="text-2xl font-bold text-gray-700">Apa aja nih yang enak di FoodHub?</h3>
+                <p className="text-gray-500 mt-2">Yuk cari menu makanan yang kamu suka.</p>
+            </div>
           </div>
         ) : activeView === 'menu' ? (
           <MenuPage
