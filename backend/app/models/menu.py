@@ -5,8 +5,8 @@ class MenuItem(Base):
     __tablename__ = "menu_items"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String)
-    category = Column(String)
-    price = Column(Integer)
+    name = Column(String, nullable=False)
+    category = Column(String, nullable=False)
+    price = Column(Integer, nullable=False)
     image_url = Column(String)
     available = Column(Boolean, default=True)

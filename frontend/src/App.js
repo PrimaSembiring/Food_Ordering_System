@@ -301,22 +301,8 @@ function App() {
                       Pesan yang bikin perut nyaman langsung di sini, semudah di aplikasi.
                   </p>
 
-                  {/* Kotak Pencarian/Lokasi Putih di tengah */}
-                  <div className="bg-white p-4 rounded-xl shadow-2xl inline-block -mb-16 transform translate-y-1/2">
-                      <div className="flex items-center gap-4">
-                          <input
-                              type="text"
-                              placeholder="Ketik makananmu"
-                              className="px-3 py-2 text-lg text-gray-800 focus:outline-none w-64"
-                          />
-                          <button 
-                              onClick={() => setShowAuth(true)}
-                              className="bg-green-500 text-white px-5 py-2 rounded-lg font-semibold hover:bg-green-600 transition"
-                          >
-                              Eksplor
-                          </button>
-                      </div>
-                  </div>
+            
+                 
               </div>
           </div>
         )}

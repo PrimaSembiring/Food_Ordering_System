@@ -10,3 +10,8 @@ class Order(Base):
     total = Column(Integer)
     status = Column(String)
     order_date = Column(DateTime, default=datetime.utcnow)
+
+    # ===== PAYMENT EXTENSION =====
+    payment_method = Column(String, nullable=True)
+    payment_status = Column(String, default="UNPAID")
+    payment_proof = Column(String, nullable=True)

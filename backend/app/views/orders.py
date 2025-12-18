@@ -1,30 +1,59 @@
 from pyramid.view import view_config
+from pyramid.response import Response
 from app.database import SessionLocal
 from app.models.order import Order
-from app.models.order_item import OrderItem
-from datetime import datetime
+import jwt
+import os
 
-@view_config(route_name="orders", request_method="POST", renderer="json")
-def create_order(req):
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
+
+
+@view_config(
+    route_name="order_payment",
+    request_method="POST",
+    renderer="json"
+)
+def submit_payment(request):
     db = SessionLocal()
-    d = req.json_body
 
-    order = Order(
-        customerId=d["customerId"],
-        customerName=d["customerName"],
-        total=d["total"],
-        status="pending",
-        date=str(datetime.now())
-    )
-    db.add(order); db.commit()
+    # ===== AUTH =====
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return Response(
+            json_body={"error": "Unauthorized"},
+            status=401
+        )
 
-    for i in d["items"]:
-        db.add(OrderItem(
-            order_id=order.id,
-            name=i["name"],
-            price=i["price"],
-            quantity=i["quantity"]
-        ))
+    token = auth_header.split(" ")[1]
+    try:
+        jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+    except Exception:
+        return Response(json_body={"error": "Invalid token"}, status=401)
+
+    # ===== PARAM =====
+    order_id = request.matchdict.get("order_id")
+
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        return Response(json_body={"error": "Order not found"}, status=404)
+
+    # ===== BODY =====
+    try:
+        data = request.json_body
+    except Exception:
+        return Response(
+            json_body={"error": "Invalid JSON body"},
+            status=400
+        )
+
+    order.payment_method = data.get("payment_method", "TRANSFER")
+    order.payment_status = "PAID"
+    order.payment_proof = data.get("payment_proof")
+
     db.commit()
 
-    return {"id": order.id}
+    return {
+        "message": "Payment submitted",
+        "order_id": order.id,
+        "payment_status": order.payment_status
+    }
