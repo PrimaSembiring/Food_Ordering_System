@@ -13,3 +13,6 @@ def includeme(config):
     # PAYMENT
     config.add_route("order_payment", "/api/orders/{order_id}/payment")
     config.add_route("verify_payment", "/api/orders/{order_id}/verify-payment")
+    
+    config.add_route('reviews', '/api/reviews')              
+    config.add_route('menu_reviews', '/api/menu/{id}/reviews') 
