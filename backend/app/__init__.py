@@ -1,12 +1,10 @@
 from pyramid.config import Configurator
+from pyramid.response import Response
 
 def main(global_config, **settings):
     config = Configurator(settings=settings)
 
-    # === ROUTES HARUS DIDAFARKAN DULU ===
-    config.include("app.routes")
-
-    # === BARU SCAN SEMUA VIEW ===
-    config.scan("app.views")
+    config.include(".routes")
+    config.scan(".views")
 
     return config.make_wsgi_app()
