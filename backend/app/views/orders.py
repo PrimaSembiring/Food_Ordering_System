@@ -1,56 +1,97 @@
 from pyramid.view import view_config
+from pyramid.response import Response
 from app.models.order import Order
 from app.models.order_item import OrderItem
+from app.security import require_auth, require_role
 
-# POST /api/orders
 @view_config(route_name="orders", renderer="json", request_method="POST")
+@require_auth
+@require_role("customer")
 def create_order(request):
     data = request.json_body
+    user_id = request.user["user_id"]
+
+    items = data.get("items")
+    if not items or not isinstance(items, list):
+        return Response(json={"error": "Order items required"}, status=400)
+
+    total = sum(item["price"] * item["quantity"] for item in items)
 
     order = Order(
-        customer_id=data["customer_id"],
-        total=data["total"],
+        customer_id=user_id,
+        total=total,
         status="pending"
     )
-    request.dbsession.add(order)
-    request.dbsession.flush()
 
-    for item in data["items"]:
-        order_item = OrderItem(
+    request.dbsession.add(order)
+    request.dbsession.flush()  # ambil order.id
+
+    for item in items:
+        oi = OrderItem(
             order_id=order.id,
             menu_item_id=item["menu_item_id"],
             quantity=item["quantity"],
             price=item["price"]
         )
-        request.dbsession.add(order_item)
+        request.dbsession.add(oi)
+
+    request.dbsession.commit()
 
     return {
         "message": "Order created",
-        "order_id": order.id
+        "order_id": order.id,
+        "total": total
     }
 
 
-# GET /api/orders
+
 @view_config(route_name="orders", renderer="json", request_method="GET")
-def get_orders(request):
-    orders = request.dbsession.query(Order).all()
+@require_auth
+@require_role("customer")
+def list_my_orders(request):
+    user_id = request.user["user_id"]
+
+    orders = request.dbsession.query(Order).filter_by(
+        customer_id=user_id
+    ).all()
+
     return [
         {
             "id": o.id,
             "total": o.total,
-            "status": o.status
-        } for o in orders
+            "status": o.status,
+            "order_date": str(o.order_date)
+        }
+        for o in orders
     ]
 
-
-# PUT /api/orders/{id}/status
-@view_config(route_name="order_status", renderer="json", request_method="PUT")
+@view_config(route_name="order_status", renderer="json", request_method="POST")
+@require_auth
+@require_role("customer")
 def update_order_status(request):
     order_id = int(request.matchdict["id"])
-    order = request.dbsession.query(Order).get(order_id)
+    data = request.json_body
+    user_id = request.user["user_id"]
+
+    order = request.dbsession.query(Order).filter_by(
+        id=order_id,
+        customer_id=user_id
+    ).first()
 
     if not order:
-        return {"error": "Order not found"}
+        return Response(json={"error": "Order not found"}, status=404)
 
-    order.status = request.json_body["status"]
-    return {"message": "Status updated"}
+    # simulasi payment
+    order.payment_method = data.get("payment_method", "transfer")
+    order.payment_status = "paid"
+    order.status = "paid"
+
+    request.dbsession.commit()
+
+    return {
+        "message": "Payment success",
+        "order_id": order.id,
+        "status": order.status
+    }
+
+

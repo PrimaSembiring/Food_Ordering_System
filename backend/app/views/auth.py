@@ -2,6 +2,7 @@ from pyramid.view import view_config
 from pyramid.response import Response
 from app.models.user import User
 from app.security import hash_password, verify_password
+from app.jwt import create_access_token
 
 
 @view_config(route_name="register", renderer="json", request_method="POST")
@@ -43,6 +44,7 @@ def register(request):
         "user_id": user.id
     }
     
+
 @view_config(route_name="login", renderer="json", request_method="POST")
 def login(request):
     data = request.json_body
@@ -57,9 +59,15 @@ def login(request):
             status=401
         )
 
-    return {
-        "message": "Login success",
+    token = create_access_token({
         "user_id": user.id,
         "role": user.role
+    })
+
+    return {
+        "message": "Login success",
+        "access_token": token,
+        "token_type": "Bearer"
     }
+
 

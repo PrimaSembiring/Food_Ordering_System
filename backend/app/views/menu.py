@@ -1,8 +1,8 @@
 from pyramid.view import view_config
 from pyramid.response import Response
 from app.models.menu import MenuItem
+from app.security import require_auth
 
-# GET /api/menu
 @view_config(route_name="menu_list", renderer="json", request_method="GET")
 def get_menu(request):
     menus = request.dbsession.query(MenuItem).all()
@@ -17,8 +17,12 @@ def get_menu(request):
     ]
 
 
-# POST /api/menu
+
+from app.security import require_auth, require_role
+
 @view_config(route_name="menu_list", renderer="json", request_method="POST")
+@require_auth
+@require_role("admin", "owner")
 def create_menu(request):
     data = request.json_body
 
@@ -31,7 +35,7 @@ def create_menu(request):
     )
 
     request.dbsession.add(menu)
-    request.dbsession.flush()
+    request.dbsession.commit()   # 🔥 WAJIB
 
     return {
         "message": "Menu created",
@@ -39,8 +43,9 @@ def create_menu(request):
     }
 
 
-# PUT /api/menu/{id}
 @view_config(route_name="menu_detail", renderer="json", request_method="PUT")
+@require_auth
+@require_role("admin", "owner")
 def update_menu(request):
     menu_id = int(request.matchdict["id"])
     menu = request.dbsession.query(MenuItem).get(menu_id)
@@ -54,11 +59,13 @@ def update_menu(request):
     menu.price = data.get("price", menu.price)
     menu.available = data.get("available", menu.available)
 
+    request.dbsession.commit()   # 🔥 WAJIB
+
     return {"message": "Menu updated"}
 
-
-# DELETE /api/menu/{id}
 @view_config(route_name="menu_detail", renderer="json", request_method="DELETE")
+@require_auth
+@require_role("admin", "owner")
 def delete_menu(request):
     menu_id = int(request.matchdict["id"])
     menu = request.dbsession.query(MenuItem).get(menu_id)
@@ -67,4 +74,8 @@ def delete_menu(request):
         return Response(json={"error": "Menu not found"}, status=404)
 
     request.dbsession.delete(menu)
+    request.dbsession.commit()   # 🔥 WAJIB
+
     return {"message": "Menu deleted"}
+
+
