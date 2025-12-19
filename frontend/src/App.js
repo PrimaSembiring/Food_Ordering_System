@@ -1,77 +1,74 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
 
-/* =======================
-   COMPONENTS
-======================= */
+/* ========= COMPONENTS ========= */
 import Header from "./components/Header";
 import AuthModal from "./components/AuthModal";
 import CartModal from "./components/CartModal";
 import PaymentModal from "./components/PaymentModal";
+import PaymentProofModal from "./components/PaymentProofModal";
 import ReviewModal from "./components/ReviewModal";
 import MenuReviewsModal from "./components/MenuReviewsModal";
-import PaymentProofModal from "./components/PaymentProofModal";
-import { verifyPayment } from "./services/order";
 
-/* =======================
-   PAGES
-======================= */
+/* ========= PAGES ========= */
 import MenuPage from "./pages/MenuPage";
 import OrdersPage from "./pages/OrdersPage";
 import ManageMenuPage from "./pages/ManageMenuPage";
 
-/* =======================
-   SERVICES
-======================= */
+/* ========= SERVICES ========= */
 import { getMenus, createMenu, updateMenu, deleteMenu } from "./services/menu";
-import { createOrder, getOrders, submitPayment } from "./services/order";
+import {
+  createOrder,
+  getOrders,
+  submitPayment,
+  verifyPayment,
+} from "./services/order";
 
-/* =======================
-   APP
-======================= */
 function App() {
-  /* ===== GLOBAL STATE ===== */
+  /* ========= AUTH ========= */
   const [currentUser, setCurrentUser] = useState(null);
+  const role = currentUser?.role || null;
+
+  /* ========= VIEW ========= */
   const [activeView, setActiveView] = useState("menu");
 
+  /* ========= DATA ========= */
   const [menuItems, setMenuItems] = useState([]);
   const [cart, setCart] = useState([]);
   const [orders, setOrders] = useState([]);
 
-  /* ===== MODALS ===== */
+  /* ========= MODALS ========= */
   const [showAuth, setShowAuth] = useState(false);
   const [showCart, setShowCart] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-
-  /* ===== PAYMENT ===== */
-  const [pendingOrder, setPendingOrder] = useState(null);
   const [showPaymentProof, setShowPaymentProof] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState(null);
-
-  /* ===== REVIEW ===== */
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [showMenuReviews, setShowMenuReviews] = useState(false);
+
+  /* ========= SELECTED ========= */
+  const [pendingOrder, setPendingOrder] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedMenu, setSelectedMenu] = useState(null);
 
-  /* =======================
-     FETCH MENU
-  ======================= */
+  /* ========= FETCH MENU ========= */
   useEffect(() => {
     const fetchMenu = async () => {
-      const data = await getMenus();
-      setMenuItems(
-        data.map((item) => ({
-          ...item,
-          image: item.image || item.image_url,
-        }))
-      );
+      try {
+        const data = await getMenus();
+        setMenuItems(
+          data.map((item) => ({
+            ...item,
+            image: item.image || item.image_url,
+          }))
+        );
+      } catch (err) {
+        console.error("Fetch menu gagal", err);
+      }
     };
     fetchMenu();
   }, []);
 
-  /* =======================
-     FETCH ORDERS
-  ======================= */
+  /* ========= FETCH ORDERS ========= */
   const normalizeOrders = (data) =>
     data.map((o) => ({
       ...o,
@@ -83,17 +80,21 @@ function App() {
     }));
 
   const fetchOrders = async () => {
-    const data = await getOrders();
-    setOrders(normalizeOrders(data));
+    try {
+      const data = await getOrders();
+      setOrders(normalizeOrders(data));
+    } catch (err) {
+      console.error("Fetch orders gagal", err);
+    }
   };
 
   useEffect(() => {
-    if (activeView === "orders") fetchOrders();
-  }, [activeView]);
+    if (activeView === "orders" && currentUser) {
+      fetchOrders();
+    }
+  }, [activeView, currentUser]);
 
-  /* =======================
-     AUTH
-  ======================= */
+  /* ========= AUTH ========= */
   const handleAuthSuccess = (data) => {
     localStorage.setItem("token", data.token);
     setCurrentUser({
@@ -111,9 +112,7 @@ function App() {
     setActiveView("menu");
   };
 
-  /* =======================
-     CART
-  ======================= */
+  /* ========= CART ========= */
   const addToCart = (item) => {
     const found = cart.find((c) => c.id === item.id);
     if (found) {
@@ -144,61 +143,54 @@ function App() {
   const getCartTotal = () =>
     cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
-  /* =======================
-     ORDER → PAYMENT
-  ======================= */
+  /* ========= ORDER ========= */
   const handlePlaceOrder = async () => {
     try {
       const res = await createOrder(cart);
       setCart([]);
-
       setPendingOrder({
         id: res.order_id,
         total: res.total,
       });
-
       setShowPaymentModal(true);
     } catch {
       alert("Gagal membuat order");
     }
   };
 
+  /* ========= PAYMENT ========= */
   const handleConfirmPayment = async (orderId, data) => {
     try {
-      await submitPayment(orderId, {
-        payment_method: data.method,
-        payment_proof: "bukti_transfer.jpg",
-      });
-
+      await submitPayment(orderId, data);
       setShowPaymentModal(false);
       setPendingOrder(null);
-
       await fetchOrders();
       setActiveView("orders");
     } catch {
-      alert("Gagal submit payment");
+      alert("Gagal upload bukti pembayaran");
     }
   };
 
-  /* =======================
-     REVIEW HANDLER
-  ======================= */
-  const openReviewModal = (menu) => {
-    setSelectedMenu(menu);
-    setShowReviewModal(true);
-  };
-
-/* HANDLER */
   const openPaymentProof = (order) => {
     setSelectedOrder(order);
     setShowPaymentProof(true);
   };
 
   const handleVerifyPayment = async (orderId, action) => {
-    await verifyPayment(orderId, action);
-    setShowPaymentProof(false);
-    setSelectedOrder(null);
-  await fetchOrders();
+    try {
+      await verifyPayment(orderId, action);
+      setShowPaymentProof(false);
+      setSelectedOrder(null);
+      await fetchOrders();
+    } catch {
+      alert("Gagal verifikasi pembayaran");
+    }
+  };
+
+  /* ========= REVIEW ========= */
+  const openReviewModal = (menu) => {
+    setSelectedMenu(menu);
+    setShowReviewModal(true);
   };
 
   const openMenuReviews = (menu) => {
@@ -206,9 +198,7 @@ function App() {
     setShowMenuReviews(true);
   };
 
-  /* =======================
-     MENU OWNER
-  ======================= */
+  /* ========= MENU OWNER ========= */
   const handleAddMenu = async (form) => {
     await createMenu(form);
     setMenuItems(await getMenus());
@@ -224,9 +214,7 @@ function App() {
     setMenuItems(menuItems.filter((m) => m.id !== id));
   };
 
-  /* =======================
-     RENDER
-  ======================= */
+  /* ========= RENDER ========= */
   return (
     <>
       <Header
@@ -239,14 +227,9 @@ function App() {
         setActiveView={setActiveView}
       />
 
-      {/* AUTH */}
-      <AuthModal
-        show={showAuth}
-        onClose={() => setShowAuth(false)}
-        onAuth={handleAuthSuccess}
-      />
+      {/* MODALS */}
+      <AuthModal show={showAuth} onClose={() => setShowAuth(false)} onAuth={handleAuthSuccess} />
 
-      {/* CART */}
       <CartModal
         show={showCart}
         onClose={() => setShowCart(false)}
@@ -257,7 +240,6 @@ function App() {
         getTotal={getCartTotal}
       />
 
-      {/* PAYMENT */}
       <PaymentModal
         show={showPaymentModal}
         orderId={pendingOrder?.id}
@@ -266,7 +248,13 @@ function App() {
         onClose={() => setShowPaymentModal(false)}
       />
 
-      {/* REVIEW MODALS */}
+      <PaymentProofModal
+        show={showPaymentProof}
+        order={selectedOrder}
+        onClose={() => setShowPaymentProof(false)}
+        onVerify={handleVerifyPayment}
+      />
+
       <ReviewModal
         show={showReviewModal}
         menuItem={selectedMenu}
@@ -280,21 +268,7 @@ function App() {
         onClose={() => setShowMenuReviews(false)}
       />
 
-      <OrdersPage
-        orders={orders}
-        isOwner={currentUser.role === "owner"}
-        onViewPayment={openPaymentProof}
-        onReviewItem={(order) => openReviewModal(order.items[0])}
-      />
-
-      <PaymentProofModal
-        show={showPaymentProof}
-        order={selectedOrder}
-        onClose={() => setShowPaymentProof(false)}
-        onVerify={handleVerifyPayment}
-      />
-
-      {/* MAIN CONTENT */}
+      {/* MAIN */}
       <main className="max-w-7xl mx-auto px-4 py-8">
         {!currentUser ? (
           <MenuPage
@@ -306,14 +280,15 @@ function App() {
           <MenuPage
             menuItems={menuItems}
             onAddToCart={addToCart}
-            isCustomer={currentUser.role === "customer"}
+            isCustomer={role === "customer"}
             onViewReviews={openMenuReviews}
             onReviewItem={openReviewModal}
           />
         ) : activeView === "orders" ? (
           <OrdersPage
             orders={orders}
-            isOwner={currentUser.role === "owner"}
+            isOwner={role === "owner"}
+            onViewPayment={openPaymentProof}
             onReviewItem={openReviewModal}
           />
         ) : (
