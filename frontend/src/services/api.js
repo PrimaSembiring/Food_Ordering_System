@@ -177,5 +177,7 @@ export const orderStatus = {
   PROCESSING: 'processing',
   READY: 'ready',
   DELIVERED: 'delivered',
-  CANCELLED: 'cancelled'
+  CANCELLED: 'cancelled',
+  // Kode baru: Status pesanan telah diterima oleh customer
+  RECEIVED: 'received' 
 };
