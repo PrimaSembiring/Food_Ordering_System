@@ -1,26 +1,55 @@
-import React from 'react';
-import { X } from 'lucide-react';
+import React from "react";
+import { Check, X } from "lucide-react";
 
-const PaymentProofModal = ({ show, onClose, proofImage }) => {
-  if (!show || !proofImage) return null;
+const PaymentProofModal = ({
+  show,
+  order,
+  onClose,
+  onVerify,
+}) => {
+  if (!show || !order) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4 fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="p-4 border-b flex justify-between items-center bg-gray-50">
-          <h3 className="text-lg font-bold text-gray-800">Payment Proof</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X className="w-6 h-6" />
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+      <div className="bg-white rounded-xl p-6 w-full max-w-md space-y-4">
+
+        <h2 className="text-xl font-bold">
+          Payment Verification
+        </h2>
+
+        <div className="space-y-2 text-sm">
+          <p><strong>Order ID:</strong> #{order.id}</p>
+          <p><strong>Status:</strong> {order.status}</p>
+          <p><strong>Total:</strong> Rp {order.total}</p>
+          <p className="text-gray-500">
+            Bukti pembayaran masih dummy (filename)
+          </p>
+        </div>
+
+        <div className="flex gap-3 pt-4">
+          <button
+            onClick={() => onVerify(order.id, "accept")}
+            className="flex-1 bg-green-500 text-white py-2 rounded flex items-center justify-center gap-2"
+          >
+            <Check size={16} />
+            Approve
+          </button>
+
+          <button
+            onClick={() => onVerify(order.id, "reject")}
+            className="flex-1 bg-red-500 text-white py-2 rounded flex items-center justify-center gap-2"
+          >
+            <X size={16} />
+            Reject
           </button>
         </div>
-        
-        <div className="flex-1 overflow-auto p-4 bg-gray-100 flex items-center justify-center">
-          <img
-            src={proofImage}
-            alt="Payment proof"
-            className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
-          />
-        </div>
+
+        <button
+          onClick={onClose}
+          className="w-full bg-gray-200 py-2 rounded"
+        >
+          Close
+        </button>
       </div>
     </div>
   );

@@ -1,224 +1,234 @@
-import React, { useState } from 'react';
-import { Store } from 'lucide-react';
-import './App.css';
-import Header from './components/Header';
-import AuthModal from './components/AuthModal';
-import CartModal from './components/CartModal';
-import ReviewModal from './components/ReviewModal';
-import MenuReviewsModal from './components/MenuReviewsModal';
-import PaymentModal from './components/PaymentModal';
-import PaymentProofModal from './components/PaymentProofModal';
-import MenuPage from './pages/MenuPage';
-import foodbackground from './Assets/Backgroundmakanan.jpeg';
-import OrdersPage from './pages/OrdersPage';
-import ManageMenuPage from './pages/ManageMenuPage';
-import { initialMenuItems } from './services/api';
+import React, { useState, useEffect } from "react";
+import "./App.css";
 
+/* =======================
+   COMPONENTS
+======================= */
+import Header from "./components/Header";
+import AuthModal from "./components/AuthModal";
+import CartModal from "./components/CartModal";
+import PaymentModal from "./components/PaymentModal";
+import ReviewModal from "./components/ReviewModal";
+import MenuReviewsModal from "./components/MenuReviewsModal";
+import PaymentProofModal from "./components/PaymentProofModal";
+import { verifyPayment } from "./services/order";
+
+/* =======================
+   PAGES
+======================= */
+import MenuPage from "./pages/MenuPage";
+import OrdersPage from "./pages/OrdersPage";
+import ManageMenuPage from "./pages/ManageMenuPage";
+
+/* =======================
+   SERVICES
+======================= */
+import { getMenus, createMenu, updateMenu, deleteMenu } from "./services/menu";
+import { createOrder, getOrders, submitPayment } from "./services/order";
+
+/* =======================
+   APP
+======================= */
 function App() {
+  /* ===== GLOBAL STATE ===== */
   const [currentUser, setCurrentUser] = useState(null);
-  const [showAuth, setShowAuth] = useState(false);
-  const [showCart, setShowCart] = useState(false);
-  const [activeView, setActiveView] = useState('menu');
-  
-  const [menuItems, setMenuItems] = useState(initialMenuItems);
+  const [activeView, setActiveView] = useState("menu");
+
+  const [menuItems, setMenuItems] = useState([]);
   const [cart, setCart] = useState([]);
   const [orders, setOrders] = useState([]);
-  const [reviews, setReviews] = useState([]);
-  
-  // Review Modal States
-  const [showReviewModal, setShowReviewModal] = useState(false);
-  const [reviewingItem, setReviewingItem] = useState(null);
-  const [reviewingOrderId, setReviewingOrderId] = useState(null);
-  
-  // Menu Reviews Modal States
-  const [showMenuReviewsModal, setShowMenuReviewsModal] = useState(false);
-  const [selectedMenuItem, setSelectedMenuItem] = useState(null);
 
-  // Payment Modal States
+  /* ===== MODALS ===== */
+  const [showAuth, setShowAuth] = useState(false);
+  const [showCart, setShowCart] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showPaymentProofModal, setShowPaymentProofModal] = useState(false);
-  const [paymentProof, setPaymentProof] = useState(null);
-  const [pendingOrder, setPendingOrder] = useState(null);
 
-  // Authentication handlers
-  const handleAuth = (authForm, authMode, userRole) => {
-    if (authMode === 'register') {
-      const newUser = {
-        id: Date.now(),
-        name: authForm.name,
-        email: authForm.email,
-        role: userRole
-      };
-      setCurrentUser(newUser);
-    } else {
-      const user = {
-        id: 1,
-        name: authForm.email.split('@')[0],
-        email: authForm.email,
-        role: userRole
-      };
-      setCurrentUser(user);
-    }
+  /* ===== PAYMENT ===== */
+  const [pendingOrder, setPendingOrder] = useState(null);
+  const [showPaymentProof, setShowPaymentProof] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+
+  /* ===== REVIEW ===== */
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showMenuReviews, setShowMenuReviews] = useState(false);
+  const [selectedMenu, setSelectedMenu] = useState(null);
+
+  /* =======================
+     FETCH MENU
+  ======================= */
+  useEffect(() => {
+    const fetchMenu = async () => {
+      const data = await getMenus();
+      setMenuItems(
+        data.map((item) => ({
+          ...item,
+          image: item.image || item.image_url,
+        }))
+      );
+    };
+    fetchMenu();
+  }, []);
+
+  /* =======================
+     FETCH ORDERS
+  ======================= */
+  const normalizeOrders = (data) =>
+    data.map((o) => ({
+      ...o,
+      items: o.items.map((i) => ({
+        name: i.menu_name,
+        quantity: i.quantity,
+        price: i.price,
+      })),
+    }));
+
+  const fetchOrders = async () => {
+    const data = await getOrders();
+    setOrders(normalizeOrders(data));
+  };
+
+  useEffect(() => {
+    if (activeView === "orders") fetchOrders();
+  }, [activeView]);
+
+  /* =======================
+     AUTH
+  ======================= */
+  const handleAuthSuccess = (data) => {
+    localStorage.setItem("token", data.token);
+    setCurrentUser({
+      id: data.user.user_id,
+      email: data.user.email,
+      role: data.user.role,
+    });
     setShowAuth(false);
   };
 
   const handleLogout = () => {
+    localStorage.removeItem("token");
     setCurrentUser(null);
     setCart([]);
-    setActiveView('menu');
+    setActiveView("menu");
   };
 
-  // Cart handlers
+  /* =======================
+     CART
+  ======================= */
   const addToCart = (item) => {
-    const existing = cart.find(c => c.id === item.id);
-    if (existing) {
-      setCart(cart.map(c => c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c));
+    const found = cart.find((c) => c.id === item.id);
+    if (found) {
+      setCart(
+        cart.map((c) =>
+          c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c
+        )
+      );
     } else {
       setCart([...cart, { ...item, quantity: 1 }]);
     }
   };
 
   const updateCartQuantity = (id, change) => {
-    setCart(cart.map(item => {
-      if (item.id === id) {
-        const newQuantity = item.quantity + change;
-        return newQuantity > 0 ? { ...item, quantity: newQuantity } : item;
-      }
-      return item;
-    }).filter(item => item.quantity > 0));
+    setCart(
+      cart
+        .map((c) =>
+          c.id === id ? { ...c, quantity: c.quantity + change } : c
+        )
+        .filter((c) => c.quantity > 0)
+    );
   };
 
   const removeFromCart = (id) => {
-    setCart(cart.filter(item => item.id !== id));
+    setCart(cart.filter((c) => c.id !== id));
   };
 
-  const getCartTotal = () => {
-    return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const getCartTotal = () =>
+    cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
+  /* =======================
+     ORDER → PAYMENT
+  ======================= */
+  const handlePlaceOrder = async () => {
+    try {
+      const res = await createOrder(cart);
+      setCart([]);
+
+      setPendingOrder({
+        id: res.order_id,
+        total: res.total,
+      });
+
+      setShowPaymentModal(true);
+    } catch {
+      alert("Gagal membuat order");
+    }
   };
 
-  const placeOrder = () => {
-    if (cart.length === 0) return;
-    
-    const newOrder = {
-      id: Date.now(),
-      customerId: currentUser.id,
-      customerName: currentUser.name,
-      items: [...cart],
-      total: getCartTotal(),
-      status: 'pending',
-      date: new Date().toLocaleString()
-    };
-    
-    setPendingOrder(newOrder);
-    setShowCart(false);
-    setShowPaymentModal(true);
+  const handleConfirmPayment = async (orderId, data) => {
+    try {
+      await submitPayment(orderId, {
+        payment_method: data.method,
+        payment_proof: "bukti_transfer.jpg",
+      });
+
+      setShowPaymentModal(false);
+      setPendingOrder(null);
+
+      await fetchOrders();
+      setActiveView("orders");
+    } catch {
+      alert("Gagal submit payment");
+    }
   };
 
-  // Menu handlers
-  const handleAddMenu = (menuForm) => {
-    const newItem = {
-      id: Date.now(),
-      ...menuForm,
-      price: parseInt(menuForm.price),
-      ownerId: currentUser.id
-    };
-    setMenuItems([...menuItems, newItem]);
-  };
-
-  const handleUpdateMenu = (item) => {
-    setMenuItems(menuItems.map(m => 
-      m.id === item.id ? { ...item, price: parseInt(item.price) } : m
-    ));
-  };
-
-  const handleDeleteMenu = (id) => {
-    setMenuItems(menuItems.filter(item => item.id !== id));
-  };
-
-  // Order handlers
-  const updateOrderStatus = (orderId, newStatus) => {
-    setOrders(orders.map(order => 
-      order.id === orderId ? { ...order, status: newStatus } : order
-    ));
-  };
-
-  // Review handlers
-  const handleReviewItem = (orderId, item) => {
-    console.log('Review item clicked:', orderId, item); // Debug
-    setReviewingOrderId(orderId);
-    setReviewingItem(item);
+  /* =======================
+     REVIEW HANDLER
+  ======================= */
+  const openReviewModal = (menu) => {
+    setSelectedMenu(menu);
     setShowReviewModal(true);
   };
 
-  const handleSubmitReview = (reviewData) => {
-    const newReview = {
-      id: Date.now(),
-      orderId: reviewingOrderId,
-      menuItemId: reviewingItem.id,
-      customerId: currentUser.id,
-      customerName: currentUser.name,
-      rating: reviewData.rating,
-      comment: reviewData.comment,
-      date: new Date().toLocaleString()
-    };
-    
-    console.log('New review:', newReview); // Debug
-    setReviews([newReview, ...reviews]);
-    setShowReviewModal(false);
-    setReviewingItem(null);
-    setReviewingOrderId(null);
-    
-    alert('✅ Review submitted successfully!');
+/* HANDLER */
+  const openPaymentProof = (order) => {
+    setSelectedOrder(order);
+    setShowPaymentProof(true);
   };
 
-  const handleViewReviews = (menuItem) => {
-    setSelectedMenuItem(menuItem);
-    setShowMenuReviewsModal(true);
+  const handleVerifyPayment = async (orderId, action) => {
+    await verifyPayment(orderId, action);
+    setShowPaymentProof(false);
+    setSelectedOrder(null);
+  await fetchOrders();
   };
 
-  // Payment handlers
-  const handleConfirmPayment = (paymentData) => {
-    // Store payment proof
-    setPaymentProof(paymentData.proof);
-    
-    // Create order with payment info
-    const orderWithPayment = {
-      ...pendingOrder,
-      status: 'pending',
-      paymentMethod: paymentData.method,
-      paymentMethodId: paymentData.methodId,
-      paymentProof: paymentData.proof,
-      paymentDate: new Date().toLocaleString()
-    };
-    
-    // Add order to list
-    setOrders([orderWithPayment, ...orders]);
-    setCart([]);
-    
-    // Show payment proof
-    setShowPaymentModal(false);
-    setShowPaymentProofModal(true);
-    
-    // Close modals and navigate after a delay
-    setTimeout(() => {
-      setShowPaymentProofModal(false);
-      setActiveView('orders');
-      setPendingOrder(null);
-      alert('✅ Payment berhasil! Pesanan Anda sedang diproses.');
-    }, 3000);
+  const openMenuReviews = (menu) => {
+    setSelectedMenu(menu);
+    setShowMenuReviews(true);
   };
 
-  const handleViewPaymentProof = (proof) => {
-    setPaymentProof(proof);
-    setShowPaymentProofModal(true);
+  /* =======================
+     MENU OWNER
+  ======================= */
+  const handleAddMenu = async (form) => {
+    await createMenu(form);
+    setMenuItems(await getMenus());
   };
 
-  const userOrders = currentUser?.role === 'customer' 
-    ? orders.filter(o => o.customerId === currentUser.id)
-    : orders;
+  const handleUpdateMenu = async (item) => {
+    await updateMenu(item.id, item);
+    setMenuItems(await getMenus());
+  };
 
+  const handleDeleteMenu = async (id) => {
+    await deleteMenu(id);
+    setMenuItems(menuItems.filter((m) => m.id !== id));
+  };
+
+  /* =======================
+     RENDER
+  ======================= */
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+    <>
       <Header
         currentUser={currentUser}
         cart={cart}
@@ -229,128 +239,93 @@ function App() {
         setActiveView={setActiveView}
       />
 
+      {/* AUTH */}
       <AuthModal
         show={showAuth}
         onClose={() => setShowAuth(false)}
-        onAuth={handleAuth}
+        onAuth={handleAuthSuccess}
       />
 
+      {/* CART */}
       <CartModal
         show={showCart}
         onClose={() => setShowCart(false)}
         cart={cart}
         updateQuantity={updateCartQuantity}
         removeItem={removeFromCart}
-        onProceedToPayment={placeOrder}
+        onProceedToPayment={handlePlaceOrder}
         getTotal={getCartTotal}
       />
 
+      {/* PAYMENT */}
+      <PaymentModal
+        show={showPaymentModal}
+        orderId={pendingOrder?.id}
+        cartTotal={pendingOrder?.total || 0}
+        onConfirmPayment={handleConfirmPayment}
+        onClose={() => setShowPaymentModal(false)}
+      />
+
+      {/* REVIEW MODALS */}
       <ReviewModal
         show={showReviewModal}
-        onClose={() => {
-          setShowReviewModal(false);
-          setReviewingItem(null);
-          setReviewingOrderId(null);
-        }}
-        orderItem={reviewingItem}
-        onSubmitReview={handleSubmitReview}
+        menuItem={selectedMenu}
+        onClose={() => setShowReviewModal(false)}
+        onReviewSuccess={() => {}}
       />
 
       <MenuReviewsModal
-        show={showMenuReviewsModal}
-        onClose={() => {
-          setShowMenuReviewsModal(false);
-          setSelectedMenuItem(null);
-        }}
-        menuItem={selectedMenuItem}
-        reviews={selectedMenuItem ? reviews.filter(r => r.menuItemId === selectedMenuItem.id) : []}
+        show={showMenuReviews}
+        menuItem={selectedMenu}
+        onClose={() => setShowMenuReviews(false)}
       />
 
-      <PaymentModal
-        show={showPaymentModal}
-        onClose={() => {
-          setShowPaymentModal(false);
-          setPendingOrder(null);
-        }}
-        cartTotal={pendingOrder?.total || 0}
-        onConfirmPayment={handleConfirmPayment}
+      <OrdersPage
+        orders={orders}
+        isOwner={currentUser.role === "owner"}
+        onViewPayment={openPaymentProof}
+        onReviewItem={(order) => openReviewModal(order.items[0])}
       />
 
       <PaymentProofModal
-        show={showPaymentProofModal}
-        onClose={() => setShowPaymentProofModal(false)}
-        proofImage={paymentProof}
+        show={showPaymentProof}
+        order={selectedOrder}
+        onClose={() => setShowPaymentProof(false)}
+        onVerify={handleVerifyPayment}
       />
 
+      {/* MAIN CONTENT */}
       <main className="max-w-7xl mx-auto px-4 py-8">
         {!currentUser ? (
-          <div className="bg-white min-h-[80vh]">
-            <div className="text-white py-16 md:py-24 relative overflow-hidden">
-                <img
-                  src={foodbackground} alt="Latar Belakang Makanan" 
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-                <div className="max-w-4xl mx-auto text-center relative z-10">   
-                    <Store className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-4" />           
-                    <h2 className="text-4xl md:text-5xl font-extrabold mb-3">Makan enak? FoodHub-in aja.</h2>
-                    <p className="text-xl md:text-2xl font-light mb-8">
-                        Pesan yang bikin perut nyaman langsung di sini, semudah di aplikasi.
-                    </p>
-
-                    {/* Kotak Pencarian/Lokasi Putih di tengah */}
-                    <div className="bg-white p-4 rounded-xl shadow-2xl inline-block -mb-16 transform translate-y-1/2">
-                        <div className="flex items-center gap-4">
-                            <input
-                                type="text"
-                                placeholder="Ketik Makananmu"
-                                className="px-3 py-2 text-lg text-gray-800 focus:outline-none w-64"
-                            />
-                            <button 
-                                // Tombol ini bisa disetel untuk membuka AuthModal agar user login sebelum eksplor
-                                onClick={() => setShowAuth(true)}
-                                className="bg-green-500 text-white px-5 py-2 rounded-lg font-semibold hover:bg-green-600 transition"
-                            >
-                                Eksplor
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Bagian di bawah (Setelah Kotak Pencarian) */}
-            <div className="pt-24 pb-12 text-center">
-                <h3 className="text-2xl font-bold text-gray-700">Apa aja nih yang enak di FoodHub?</h3>
-                <p className="text-gray-500 mt-2">Yuk cari menu makanan yang kamu suka.</p>
-            </div>
-          </div>
-        ) : activeView === 'menu' ? (
           <MenuPage
             menuItems={menuItems}
             onAddToCart={addToCart}
-            isCustomer={currentUser.role === 'customer'}
-            reviews={reviews}
-            onViewReviews={handleViewReviews}
+            onViewReviews={openMenuReviews}
           />
-        ) : activeView === 'orders' ? (
+        ) : activeView === "menu" ? (
+          <MenuPage
+            menuItems={menuItems}
+            onAddToCart={addToCart}
+            isCustomer={currentUser.role === "customer"}
+            onViewReviews={openMenuReviews}
+            onReviewItem={openReviewModal}
+          />
+        ) : activeView === "orders" ? (
           <OrdersPage
-            orders={userOrders}
-            isOwner={currentUser.role === 'owner'}
-            onUpdateStatus={updateOrderStatus}
-            onReviewItem={handleReviewItem}
-            onViewPaymentProof={handleViewPaymentProof}
-            reviews={reviews}
+            orders={orders}
+            isOwner={currentUser.role === "owner"}
+            onReviewItem={openReviewModal}
           />
-        ) : activeView === 'manage' && currentUser.role === 'owner' ? (
+        ) : (
           <ManageMenuPage
             menuItems={menuItems}
-            currentUser={currentUser}
             onAddMenu={handleAddMenu}
             onUpdateMenu={handleUpdateMenu}
             onDeleteMenu={handleDeleteMenu}
           />
-        ) : null}
+        )}
       </main>
-    </div>
+    </>
   );
 }
 

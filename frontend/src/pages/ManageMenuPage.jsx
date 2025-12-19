@@ -20,7 +20,7 @@ const ManageMenuPage = ({ menuItems, currentUser, onAddMenu, onUpdateMenu, onDel
     setEditingItem(null);
   };
 
-  const userMenuItems = menuItems.filter(item => item.ownerId === currentUser.id);
+  const userMenuItems = menuItems;
 
   return (
     <div>

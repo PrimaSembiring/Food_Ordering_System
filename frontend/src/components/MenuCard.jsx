@@ -9,7 +9,11 @@ const MenuCard = ({ item, onAddToCart, onViewReviews, isCustomer, reviews = [] }
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition card-hover">
       <div className="relative">
-        <img src={item.image} alt={item.name} className="w-full h-48 object-cover" />
+        <img
+          src={item.image || "https://via.placeholder.com/300"}
+          alt={item.name}
+          className="w-full h-48 object-cover"
+        />
         
         {/* Rating Badge - Muncul di gambar jika ada review */}
         {reviewCount > 0 && (

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import { login, register } from "../services/auth";
 
 const AuthModal = ({ show, onClose, onAuth }) => {
   const [authMode, setAuthMode] = useState('login');
@@ -8,11 +9,26 @@ const AuthModal = ({ show, onClose, onAuth }) => {
 
   if (!show) return null;
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onAuth(authForm, authMode, userRole);
-    setAuthForm({ email: '', password: '', name: '' });
-  };
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  try {
+    if (authMode === "login") {
+      const data = await login(authForm.email, authForm.password);
+      onAuth(data); // kirim ke App.js
+    } else {
+      await register(
+        authForm.name,
+        authForm.email,
+        authForm.password,
+        userRole
+      );
+      alert("Register berhasil, silakan login");
+    }
+  } catch (err) {
+    alert(err.response?.data?.error || "Auth failed");
+  }
+};
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 fade-in">
