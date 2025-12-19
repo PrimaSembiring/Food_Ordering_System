@@ -1,130 +1,156 @@
-import React, { useState } from 'react';
-import { X } from 'lucide-react';
+import React, { useState } from "react";
 import { login, register } from "../services/auth";
 
 const AuthModal = ({ show, onClose, onAuth }) => {
-  const [authMode, setAuthMode] = useState('login');
-  const [userRole, setUserRole] = useState('customer');
-  const [authForm, setAuthForm] = useState({ email: '', password: '', name: '' });
+  const [mode, setMode] = useState("login"); // login | register
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: "customer",
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   if (!show) return null;
 
-  const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
-  try {
-    if (authMode === "login") {
-      const data = await login(authForm.email, authForm.password);
-      onAuth(data); // kirim ke App.js
-    } else {
-      await register(
-        authForm.name,
-        authForm.email,
-        authForm.password,
-        userRole
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      if (mode === "register") {
+        // ✅ REGISTER: TIDAK EXPECT TOKEN
+        await register(
+          form.name,
+          form.email,
+          form.password,
+          form.role
+        );
+
+        alert("Register berhasil. Silakan login.");
+        setMode("login"); // ⬅️ BALIK KE LOGIN
+        setForm({
+          name: "",
+          email: "",
+          password: "",
+          role: "customer",
+        });
+      } else {
+        // ✅ LOGIN: BARU DAPET TOKEN
+        const data = await login(form.email, form.password);
+        onAuth(data);
+      }
+    } catch (err) {
+      setError(
+        err?.response?.data?.error ||
+          "Auth failed. Periksa email & password."
       );
-      alert("Register berhasil, silakan login");
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    alert(err.response?.data?.error || "Auth failed");
-  }
-};
+  };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">
-            {authMode === 'login' ? 'Login' : 'Register'}
-          </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {authMode === 'register' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
-              <input
-                type="text"
-                required
-                value={authForm.name}
-                onChange={(e) => setAuthForm({...authForm, name: e.target.value})}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                placeholder="Enter your name"
-              />
-            </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white rounded-xl p-6 w-full max-w-md space-y-4"
+      >
+        <h2 className="text-xl font-bold">
+          {mode === "login" ? "Login" : "Register"}
+        </h2>
+
+        {error && (
+          <p className="text-red-500 text-sm">{error}</p>
+        )}
+
+        {mode === "register" && (
+          <>
+            <input
+              name="name"
+              placeholder="Name"
+              className="w-full border p-2 rounded"
+              value={form.name}
+              onChange={handleChange}
+              required
+            />
+
+            <select
+              name="role"
+              value={form.role}
+              onChange={handleChange}
+              className="w-full border p-2 rounded"
+            >
+              <option value="customer">Customer</option>
+              <option value="owner">Owner</option>
+            </select>
+          </>
+        )}
+
+        <input
+          name="email"
+          type="email"
+          placeholder="Email"
+          className="w-full border p-2 rounded"
+          value={form.email}
+          onChange={handleChange}
+          required
+        />
+
+        <input
+          name="password"
+          type="password"
+          placeholder="Password"
+          className="w-full border p-2 rounded"
+          value={form.password}
+          onChange={handleChange}
+          required
+        />
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-orange-500 text-white py-2 rounded"
+        >
+          {loading
+            ? "Processing..."
+            : mode === "login"
+            ? "Login"
+            : "Register"}
+        </button>
+
+        <p className="text-sm text-center">
+          {mode === "login" ? (
+            <>
+              Belum punya akun?{" "}
+              <button
+                type="button"
+                className="text-orange-500"
+                onClick={() => setMode("register")}
+              >
+                Register
+              </button>
+            </>
+          ) : (
+            <>
+              Sudah punya akun?{" "}
+              <button
+                type="button"
+                className="text-orange-500"
+                onClick={() => setMode("login")}
+              >
+                Login
+              </button>
+            </>
           )}
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-            <input
-              type="email"
-              required
-              value={authForm.email}
-              onChange={(e) => setAuthForm({...authForm, email: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              placeholder="Enter your email"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-            <input
-              type="password"
-              required
-              value={authForm.password}
-              onChange={(e) => setAuthForm({...authForm, password: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              placeholder="Enter your password"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
-            <div className="flex space-x-4">
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  value="customer"
-                  checked={userRole === 'customer'}
-                  onChange={(e) => setUserRole(e.target.value)}
-                  className="mr-2"
-                />
-                Customer
-              </label>
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  value="owner"
-                  checked={userRole === 'owner'}
-                  onChange={(e) => setUserRole(e.target.value)}
-                  className="mr-2"
-                />
-                Restaurant Owner
-              </label>
-            </div>
-          </div>
-          
-          <button
-            type="submit"
-            className="w-full py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:shadow-lg transition font-semibold"
-          >
-            {authMode === 'login' ? 'Login' : 'Register'}
-          </button>
-        </form>
-        
-        <p className="mt-4 text-center text-sm text-gray-600">
-          {authMode === 'login' ? "Don't have an account? " : "Already have an account? "}
-          <button
-            onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
-            className="text-orange-500 font-semibold hover:underline"
-          >
-            {authMode === 'login' ? 'Register' : 'Login'}
-          </button>
         </p>
-      </div>
+      </form>
     </div>
   );
 };
