@@ -1,40 +1,68 @@
 from pyramid.view import view_config
-from pyramid.httpexceptions import HTTPBadRequest
+from pyramid.response import Response
 from app.models.user import User
-from app.database import SessionLocal
-from app.security import hash_password
+from app.security import hash_password, verify_password
 
-@view_config(
-    route_name="register",
-    request_method="POST",
-    renderer="json",
-    permission=None
-)
+
+# =========================
+# REGISTER
+# =========================
+@view_config(route_name="register", renderer="json", request_method="POST")
 def register(request):
-    db = SessionLocal()
     data = request.json_body
 
-    email = data.get("email")
-    password = data.get("password")
-    role = data.get("role", "customer")
+    # cek user sudah ada
+    existing = request.dbsession.query(User).filter_by(
+        email=data["email"]
+    ).first()
 
-    if not email or not password:
-        return HTTPBadRequest(json_body={"error": "Email dan password wajib diisi"})
-
-    # cek user existing
-    existing = db.query(User).filter(User.email == email).first()
     if existing:
-        return HTTPBadRequest(json_body={"error": "Email sudah terdaftar"})
+        return Response(
+            json={"error": "Email already registered"},
+            status=400
+        )
 
     user = User(
-        email=email,
-        password=hash_password(password),
-        role=role
+        name=data["name"],
+        email=data["email"],
+        password=hash_password(data["password"]),
+        role=data["role"]
     )
 
-    db.add(user)
-    db.commit()
+    request.dbsession.add(user)
+    request.dbsession.flush()
 
     return {
-        "message": "Register berhasil"
+        "message": "User registered",
+        "user_id": user.id
+    }
+
+
+# =========================
+# LOGIN
+# =========================
+@view_config(route_name="login", renderer="json", request_method="POST")
+def login(request):
+    data = request.json_body
+
+    user = request.dbsession.query(User).filter_by(
+        email=data["email"]
+    ).first()
+
+    if user is None:
+        return Response(
+            json={"error": "Invalid credentials"},
+            status=401
+        )
+
+    if not verify_password(data["password"], user.password):
+        return Response(
+            json={"error": "Invalid credentials"},
+            status=401
+        )
+
+    return {
+        "message": "Login success",
+        "user_id": user.id,
+        "role": user.role
     }

@@ -1,4 +1,6 @@
+from .base import Base
+from .user import User
 from .menu import MenuItem
 from .order import Order
 from .order_item import OrderItem
-from .user import User
+from .review import Review
