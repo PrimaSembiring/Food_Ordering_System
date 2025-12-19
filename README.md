@@ -37,7 +37,7 @@ npm start
 
 ## Alur Penggunaan Aplikasi
 1. Jalankan backend dan frontend
-2. Buka browser ke http://localhost:3000
+2. Buka browser
 3. Lakukan Register akun baru
 4. Login menggunakan akun yang telah dibuat
 5. Akses fitur menu, pemesanan, pembayaran, dan review
