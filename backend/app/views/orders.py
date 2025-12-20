@@ -15,50 +15,76 @@ def create_order(request):
 
     items = data.get("items")
     if not items or not isinstance(items, list):
-        return Response(json={"error": "Order items required"}, status=400)
+        return Response(
+            json={"error": "Order items required"},
+            status=400
+        )
 
     total = 0
-
-    order = Order(
-        customer_id=user_id,
-        total=0,
-        status="pending"
-    )
-
-    request.dbsession.add(order)
-    request.dbsession.flush()
+    order_items = []
 
     for item in items:
-        menu = request.dbsession.query(MenuItem).get(item.get("menu_item_id"))
-        if not menu or not menu.available:
+        menu_id = item.get("menu_item_id")
+        quantity = item.get("quantity")
+
+        if not menu_id or not quantity or quantity <= 0:
             return Response(
-                json={"error": f"Menu {item.get('menu_item_id')} not available"},
+                json={"error": "Invalid menu item data"},
                 status=400
             )
 
-        qty = int(item.get("quantity", 0))
-        if qty <= 0:
-            return Response(json={"error": "Invalid quantity"}, status=400)
+        menu = request.dbsession.query(MenuItem).get(menu_id)
 
-        total += menu.price * qty
+        if not menu:
+            return Response(
+                json={"error": f"Menu item {menu_id} not found"},
+                status=404
+            )
 
-        request.dbsession.add(OrderItem(
-            order_id=order.id,
-            menu_item_id=menu.id,
-            quantity=qty,
-            price=menu.price
-        ))
+        if not menu.available:
+            return Response(
+                json={"error": f"Menu '{menu.name}' is not available"},
+                status=400
+            )
 
-    order.total = total
+        price = menu.price
+        subtotal = price * quantity
+        total += subtotal
+
+        order_items.append({
+            "menu_item_id": menu_id,
+            "quantity": quantity,
+            "price": price
+        })
+
+    # create order
+    order = Order(
+        customer_id=user_id,
+        total=total,
+        status="PENDING",
+        payment_status="UNPAID"
+    )
+
+    request.dbsession.add(order)
+    request.dbsession.flush()  # get order.id
+
+    for oi in order_items:
+        request.dbsession.add(
+            OrderItem(
+                order_id=order.id,
+                menu_item_id=oi["menu_item_id"],
+                quantity=oi["quantity"],
+                price=oi["price"]
+            )
+        )
+
+    request.dbsession.commit()
 
     return {
         "message": "Order created",
         "order_id": order.id,
         "total": total
     }
-
-
-
 
 
 @view_config(route_name="orders", renderer="json", request_method="GET")
@@ -87,8 +113,8 @@ def list_my_orders(request):
 @require_role("customer")
 def update_order_status(request):
     order_id = int(request.matchdict["id"])
-    user_id = request.user["user_id"]
     data = request.json_body
+    user_id = request.user["user_id"]
 
     order = request.dbsession.query(Order).filter_by(
         id=order_id,
@@ -96,22 +122,46 @@ def update_order_status(request):
     ).first()
 
     if not order:
-        return Response(json={"error": "Order not found"}, status=404)
+        return Response(
+            json={"error": "Order not found"},
+            status=404
+        )
 
-    if order.payment_status == "paid":
+    # 🔐 HARDENING STEP 2: Cegah payment ulang
+    if order.payment_status == "PAID":
         return Response(
             json={"error": "Order already paid"},
             status=400
         )
 
-    order.payment_method = data.get("payment_method", "transfer")
-    order.payment_status = "paid"
-    order.status = "paid"
+    # optional: cegah status aneh
+    if order.status == "PAID":
+        return Response(
+            json={"error": "Order already completed"},
+            status=400
+        )
+
+    payment_method = data.get("payment_method")
+    if not payment_method:
+        return Response(
+            json={"error": "Payment method required"},
+            status=400
+        )
+
+    # simulasi payment sukses
+    order.payment_method = payment_method
+    order.payment_status = "PAID"
+    order.status = "PAID"
+
+    request.dbsession.commit()
 
     return {
         "message": "Payment success",
-        "order_id": order.id
+        "order_id": order.id,
+        "status": order.status,
+        "payment_status": order.payment_status
     }
+
 
 @view_config(route_name="order_detail", renderer="json", request_method="GET")
 @require_auth
