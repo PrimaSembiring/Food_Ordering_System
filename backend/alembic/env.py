@@ -20,12 +20,12 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Import metadata
-from app.database import Base
 from app.models.user import User
 from app.models.menu import MenuItem
 from app.models.order import Order
 from app.models.order_item import OrderItem
 
+from app.database import Base
 target_metadata = Base.metadata
 
 

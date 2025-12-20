@@ -1,6 +1,7 @@
 from pyramid.response import Response
 from passlib.context import CryptContext
 from app.jwt import decode_access_token
+from passlib.exc import UnknownHashError
 
 # =========================
 # PASSWORD HASHING
@@ -14,7 +15,10 @@ def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        return pwd_context.verify(plain_password, hashed_password)
+    except UnknownHashError:
+        return False
 
 
 # =========================

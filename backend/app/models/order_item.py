@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, ForeignKey
 from sqlalchemy.orm import relationship
-from app.models.base import Base
+from app.database import Base
 
 class OrderItem(Base):
     __tablename__ = "order_items"
@@ -12,3 +12,4 @@ class OrderItem(Base):
     price = Column(Integer)
 
     order = relationship("Order", back_populates="items")
+    menu = relationship("MenuItem")

@@ -1,17 +1,14 @@
-import os
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import NullPool
+from sqlalchemy.orm import sessionmaker, declarative_base
+import os
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "postgresql://postgres:ragilbayu123@localhost:5432/db_makanan"
 )
 
-engine = create_engine(
-    DATABASE_URL,
-    poolclass=NullPool,
-    echo=True  # ganti False kalau sudah stabil
-)
+engine = create_engine(DATABASE_URL)
 
-DBSession = sessionmaker(bind=engine)
+SessionLocal = sessionmaker(bind=engine)
+
+Base = declarative_base()

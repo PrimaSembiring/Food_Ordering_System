@@ -1,17 +1,18 @@
 from pyramid.config import Configurator
-from .database import DBSession
+from .database import SessionLocal
+
 
 def main(global_config, **settings):
     config = Configurator(settings=settings)
 
     config.add_request_method(
-        lambda request: DBSession(),
+        lambda request: SessionLocal(),
         'dbsession',
         reify=True
     )
 
-    config.include("pyramid_tm")        # WAJIB
-    config.include("app.routes")        # WAJIB
-    config.scan("app.views")            # WAJIB
+    config.include("pyramid_tm")
+    config.include("app.routes")
+    config.scan("app.views")
 
     return config.make_wsgi_app()
