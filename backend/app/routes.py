@@ -18,7 +18,7 @@ def includeme(config):
     config.add_route("order_status", "/api/orders/{id}/status")
     config.add_route("order_detail", "/api/orders/{id}")
     config.add_route("admin_orders", "/api/admin/orders")
-
+    config.add_route("admin_verify_order", "/api/admin/orders/{id}/verify")
 
     # =====================
     # REVIEWS  👈 INI YANG KURANG
