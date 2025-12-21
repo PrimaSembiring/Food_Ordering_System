@@ -1,34 +1,24 @@
 from pyramid.view import view_config
-from pyramid.response import Response
 from app.models.user import User
 from app.security import hash_password, verify_password
 from app.jwt import create_access_token
+from app.utils.response import success, error
 
 
 @view_config(route_name="register", renderer="json", request_method="POST")
 def register(request):
-    print(">>> REGISTER ENDPOINT HIT <<<")
     data = request.json_body
 
-    # VALIDASI WAJIB
     if not data.get("email") or not data.get("password"):
-        return Response(
-            json={"error": "Email and password required"},
-            status=400
-        )
+        return error("Email and password required", 400)
 
-    # CEK USER SUDAH ADA
     existing = request.dbsession.query(User).filter_by(
         email=data["email"]
     ).first()
 
     if existing:
-        return Response(
-            json={"error": "Email already registered"},
-            status=400
-        )
+        return error("Email already registered", 400)
 
-    # BUAT USER BARU
     user = User(
         name=data.get("name", ""),
         email=data["email"],
@@ -37,37 +27,34 @@ def register(request):
     )
 
     request.dbsession.add(user)
-    request.dbsession.commit()    # penting: dapet user.id
+    request.dbsession.commit()
 
-    return {
-        "message": "User registered",
-        "user_id": user.id
-    }
-    
+    return success(
+        {"user_id": user.id},
+        "User registered"
+    )
+
 
 @view_config(route_name="login", renderer="json", request_method="POST")
 def login(request):
     data = request.json_body
 
     user = request.dbsession.query(User).filter_by(
-        email=data["email"]
+        email=data.get("email")
     ).first()
 
-    if not user or not verify_password(data["password"], user.password):
-        return Response(
-            json={"error": "Invalid credentials"},
-            status=401
-        )
+    if not user or not verify_password(data.get("password"), user.password):
+        return error("Invalid credentials", 401)
 
     token = create_access_token({
         "user_id": user.id,
         "role": user.role
     })
 
-    return {
-        "message": "Login success",
-        "access_token": token,
-        "token_type": "Bearer"
-    }
-
-
+    return success(
+        {
+            "access_token": token,
+            "token_type": "Bearer"
+        },
+        "Login success"
+    )

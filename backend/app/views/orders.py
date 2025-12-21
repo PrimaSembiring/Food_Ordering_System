@@ -47,11 +47,13 @@ def create_order(request):
             return Response(json={"error": f"Menu {menu_id} not found"}, status=404)
 
         if not menu.available:
-            return Response(json={"error": f"Menu '{menu.name}' not available"}, status=400)
+            return Response(
+                json={"error": f"Menu '{menu.name}' not available"},
+                status=400
+            )
 
         subtotal = menu.price * quantity
         total += subtotal
-
         order_items.append((menu_id, quantity, menu.price))
 
     order = Order(
@@ -92,7 +94,9 @@ def create_order(request):
 def list_my_orders(request):
     user_id = request.user["user_id"]
 
-    orders = request.dbsession.query(Order).filter_by(customer_id=user_id).all()
+    orders = request.dbsession.query(Order).filter_by(
+        customer_id=user_id
+    ).all()
 
     return [
         {
@@ -100,14 +104,15 @@ def list_my_orders(request):
             "total": o.total,
             "status": o.status,
             "payment_status": o.payment_status,
-            "payment_method": o.payment_method
+            "payment_method": o.payment_method,
+            "order_date": o.order_date.isoformat()
         }
         for o in orders
     ]
 
 
 # ======================================================
-# CUSTOMER - SUBMIT PAYMENT (UPLOAD / PILIH METODE)
+# CUSTOMER - SUBMIT PAYMENT
 # ======================================================
 @view_config(route_name="order_status", renderer="json", request_method="POST")
 @require_auth
@@ -125,12 +130,24 @@ def submit_payment(request):
     if not order:
         return Response(json={"error": "Order not found"}, status=404)
 
+    if order.status in (ORDER_CONFIRMED, ORDER_CANCELLED):
+        return Response(
+            json={"error": "Order already finalized"},
+            status=400
+        )
+
     if order.payment_status != PAYMENT_UNPAID:
-        return Response(json={"error": "Payment already submitted"}, status=400)
+        return Response(
+            json={"error": "Payment already submitted"},
+            status=400
+        )
 
     payment_method = data.get("payment_method")
     if not payment_method:
-        return Response(json={"error": "Payment method required"}, status=400)
+        return Response(
+            json={"error": "Payment method required"},
+            status=400
+        )
 
     order.payment_method = payment_method
     order.payment_status = PAYMENT_WAITING_VERIFICATION
@@ -139,7 +156,7 @@ def submit_payment(request):
     request.dbsession.commit()
 
     return {
-        "message": "Payment submitted, waiting verification",
+        "message": "Payment submitted",
         "order_id": order.id,
         "status": order.status,
         "payment_status": order.payment_status
@@ -157,15 +174,16 @@ def admin_list_orders(request):
     result = []
 
     for o in orders:
-        items = []
-        for item in o.items:
-            items.append({
-                "menu_item_id": item.menu_item_id,
-                "menu_name": item.menu.name if item.menu else None,
-                "quantity": item.quantity,
-                "price": item.price,
-                "subtotal": item.quantity * item.price
-            })
+        items = [
+            {
+                "menu_item_id": i.menu_item_id,
+                "menu_name": i.menu.name if i.menu else None,
+                "quantity": i.quantity,
+                "price": i.price,
+                "subtotal": i.quantity * i.price
+            }
+            for i in o.items
+        ]
 
         result.append({
             "order_id": o.id,
@@ -182,8 +200,9 @@ def admin_list_orders(request):
 
     return result
 
+
 # ======================================================
-# ADMIN - APPROVE / REJECT PAYMENT
+# ADMIN - VERIFY PAYMENT
 # ======================================================
 @view_config(route_name="admin_verify_order", renderer="json", request_method="POST")
 @require_auth
@@ -192,33 +211,27 @@ def admin_verify_payment(request):
     order_id = int(request.matchdict["id"])
     data = request.json_body
 
-    action = data.get("action")  # approve / reject
+    action = data.get("action")
     if action not in ("approve", "reject"):
         return Response(
-            json={"error": "Action must be 'approve' or 'reject'"},
+            json={"error": "Action must be approve or reject"},
             status=400
         )
 
-    order = request.dbsession.query(Order).filter_by(id=order_id).first()
+    order = request.dbsession.get(Order, order_id)
     if not order:
         return Response(json={"error": "Order not found"}, status=404)
 
     if order.payment_status != PAYMENT_WAITING_VERIFICATION:
         return Response(
-            json={"error": "Order is not waiting for verification"},
+            json={"error": "Order not waiting verification"},
             status=400
         )
 
-    # =========================
-    # APPROVE
-    # =========================
     if action == "approve":
         order.payment_status = PAYMENT_PAID
         order.status = ORDER_CONFIRMED
 
-    # =========================
-    # REJECT
-    # =========================
     if action == "reject":
         order.payment_status = PAYMENT_REJECTED
         order.status = ORDER_CANCELLED
@@ -226,7 +239,7 @@ def admin_verify_payment(request):
     request.dbsession.commit()
 
     return {
-        "message": f"Order {action}d successfully",
+        "message": f"Order {action}d",
         "order_id": order.id,
         "status": order.status,
         "payment_status": order.payment_status
