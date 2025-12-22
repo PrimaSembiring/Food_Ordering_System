@@ -1,158 +1,133 @@
-import React, { useState } from "react";
-import { login, register } from "../services/auth";
+import { useState } from "react";
+import axios from "axios";
+import { setAuth } from "../utils/auth";
 
-const AuthModal = ({ show, onClose, onAuth }) => {
-  const [mode, setMode] = useState("login"); // login | register
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    role: "customer",
-  });
-  const [loading, setLoading] = useState(false);
+export default function AuthModal({ open, onClose, onSuccess }) {
+  const [mode, setMode] = useState("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [error, setError] = useState("");
 
-  if (!show) return null;
+  if (!open) return null;
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleLogin = async () => {
+    try {
+      const res = await axios.post("http://localhost:8000/api/login", {
+        email,
+        password,
+      });
+
+      const { access_token, role } = res.data.data;
+      setAuth(access_token, role);
+
+      onClose();
+      onSuccess();
+    } catch {
+      setError("Login gagal");
+    }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
+  const handleRegister = async () => {
     try {
-      if (mode === "register") {
-        // ✅ REGISTER: TIDAK EXPECT TOKEN
-        await register(
-          form.name,
-          form.email,
-          form.password,
-          form.role
-        );
+      await axios.post("http://localhost:8000/api/register", {
+        name,
+        email,
+        password,
+      });
 
-        alert("Register berhasil. Silakan login.");
-        setMode("login"); // ⬅️ BALIK KE LOGIN
-        setForm({
-          name: "",
-          email: "",
-          password: "",
-          role: "customer",
-        });
-      } else {
-        // ✅ LOGIN: BARU DAPET TOKEN
-        const data = await login(form.email, form.password);
-        onAuth(data);
-      }
-    } catch (err) {
-      setError(
-        err?.response?.data?.error ||
-          "Auth failed. Periksa email & password."
-      );
-    } finally {
-      setLoading(false);
+      alert("Register berhasil, silakan login");
+      setMode("login");
+    } catch {
+      setError("Register gagal");
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white rounded-xl p-6 w-full max-w-md space-y-4"
+    /* 🔥 FIX UTAMA ADA DI SINI */
+    <div
+      className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999]"
+      onClick={onClose}
+    >
+      {/* STOP PROPAGATION BIAR MODAL BISA DIKLIK */}
+      <div
+        className="bg-zinc-900 p-6 rounded w-80 text-white relative"
+        onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-xl font-bold">
+        <button
+          className="absolute top-2 right-3 text-white text-xl"
+          onClick={onClose}
+        >
+          ✕
+        </button>
+
+        <h2 className="text-xl mb-4 capitalize">
           {mode === "login" ? "Login" : "Register"}
         </h2>
 
-        {error && (
-          <p className="text-red-500 text-sm">{error}</p>
+        {mode === "register" && (
+          <input
+            className="w-full mb-2 p-2 bg-zinc-800 rounded"
+            placeholder="Nama"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
         )}
 
-        {mode === "register" && (
-          <>
-            <input
-              name="name"
-              placeholder="Name"
-              className="w-full border p-2 rounded"
-              value={form.name}
-              onChange={handleChange}
-              required
-            />
+        <input
+          className="w-full mb-2 p-2 bg-zinc-800 rounded"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
-            <select
-              name="role"
-              value={form.role}
-              onChange={handleChange}
-              className="w-full border p-2 rounded"
+        <input
+          type="password"
+          className="w-full mb-3 p-2 bg-zinc-800 rounded"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+
+        {error && <p className="text-red-500 mb-2">{error}</p>}
+
+        {mode === "login" ? (
+          <>
+            <button
+              className="w-full bg-white text-black p-2 rounded"
+              onClick={handleLogin}
             >
-              <option value="customer">Customer</option>
-              <option value="owner">Owner</option>
-            </select>
+              Login
+            </button>
+
+            {/* 🔥 GANTI TEXT JADI BUTTON */}
+            <button
+              type="button"
+              className="mt-3 text-sm text-blue-400 underline w-full"
+              onClick={() => setMode("register")}
+            >
+              Belum punya akun? Register
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              className="w-full bg-white text-black p-2 rounded"
+              onClick={handleRegister}
+            >
+              Register
+            </button>
+
+            <button
+              type="button"
+              className="mt-3 text-sm text-blue-400 underline w-full"
+              onClick={() => setMode("login")}
+            >
+              Sudah punya akun? Login
+            </button>
           </>
         )}
-
-        <input
-          name="email"
-          type="email"
-          placeholder="Email"
-          className="w-full border p-2 rounded"
-          value={form.email}
-          onChange={handleChange}
-          required
-        />
-
-        <input
-          name="password"
-          type="password"
-          placeholder="Password"
-          className="w-full border p-2 rounded"
-          value={form.password}
-          onChange={handleChange}
-          required
-        />
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-orange-500 text-white py-2 rounded"
-        >
-          {loading
-            ? "Processing..."
-            : mode === "login"
-            ? "Login"
-            : "Register"}
-        </button>
-
-        <p className="text-sm text-center">
-          {mode === "login" ? (
-            <>
-              Belum punya akun?{" "}
-              <button
-                type="button"
-                className="text-orange-500"
-                onClick={() => setMode("register")}
-              >
-                Register
-              </button>
-            </>
-          ) : (
-            <>
-              Sudah punya akun?{" "}
-              <button
-                type="button"
-                className="text-orange-500"
-                onClick={() => setMode("login")}
-              >
-                Login
-              </button>
-            </>
-          )}
-        </p>
-      </form>
+      </div>
     </div>
   );
-};
-
-export default AuthModal;
+}

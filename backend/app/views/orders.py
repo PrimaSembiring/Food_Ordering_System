@@ -43,14 +43,8 @@ def create_order(request):
             return Response(json={"error": "Invalid item data"}, status=400)
 
         menu = request.dbsession.get(MenuItem, menu_id)
-        if not menu:
-            return Response(json={"error": f"Menu {menu_id} not found"}, status=404)
-
-        if not menu.available:
-            return Response(
-                json={"error": f"Menu '{menu.name}' not available"},
-                status=400
-            )
+        if not menu or not menu.available:
+            return Response(json={"error": "Menu not available"}, status=400)
 
         subtotal = menu.price * quantity
         total += subtotal
@@ -104,11 +98,45 @@ def list_my_orders(request):
             "total": o.total,
             "status": o.status,
             "payment_status": o.payment_status,
-            "payment_method": o.payment_method,
             "order_date": o.order_date.isoformat()
         }
         for o in orders
     ]
+
+
+# ======================================================
+# CUSTOMER - ORDER DETAIL
+# ======================================================
+@view_config(route_name="order_detail", renderer="json", request_method="GET")
+@require_auth
+@require_role("customer")
+def customer_order_detail(request):
+    order_id = int(request.matchdict["id"])
+    user_id = request.user["user_id"]
+
+    order = request.dbsession.query(Order).filter_by(
+        id=order_id,
+        customer_id=user_id
+    ).first()
+
+    if not order:
+        return Response(json={"error": "Order not found"}, status=404)
+
+    return {
+        "id": order.id,
+        "total": order.total,
+        "status": order.status,
+        "payment_status": order.payment_status,
+        "items": [
+            {
+                "menu_name": i.menu.name,
+                "quantity": i.quantity,
+                "price": i.price,
+                "subtotal": i.quantity * i.price
+            }
+            for i in order.items
+        ]
+    }
 
 
 # ======================================================
@@ -119,8 +147,8 @@ def list_my_orders(request):
 @require_role("customer")
 def submit_payment(request):
     order_id = int(request.matchdict["id"])
-    user_id = request.user["user_id"]
     data = request.json_body
+    user_id = request.user["user_id"]
 
     order = request.dbsession.query(Order).filter_by(
         id=order_id,
@@ -130,24 +158,9 @@ def submit_payment(request):
     if not order:
         return Response(json={"error": "Order not found"}, status=404)
 
-    if order.status in (ORDER_CONFIRMED, ORDER_CANCELLED):
-        return Response(
-            json={"error": "Order already finalized"},
-            status=400
-        )
-
-    if order.payment_status != PAYMENT_UNPAID:
-        return Response(
-            json={"error": "Payment already submitted"},
-            status=400
-        )
-
     payment_method = data.get("payment_method")
     if not payment_method:
-        return Response(
-            json={"error": "Payment method required"},
-            status=400
-        )
+        return Response(json={"error": "Payment method required"}, status=400)
 
     order.payment_method = payment_method
     order.payment_status = PAYMENT_WAITING_VERIFICATION
@@ -155,92 +168,61 @@ def submit_payment(request):
 
     request.dbsession.commit()
 
-    return {
-        "message": "Payment submitted",
-        "order_id": order.id,
-        "status": order.status,
-        "payment_status": order.payment_status
-    }
+    return {"message": "Payment submitted"}
 
 
 # ======================================================
-# ADMIN - LIST ALL ORDERS
+# OWNER - LIST ALL ORDERS
 # ======================================================
 @view_config(route_name="admin_orders", renderer="json", request_method="GET")
 @require_auth
-@require_role("admin")
+@require_role("owner")
 def admin_list_orders(request):
     orders = request.dbsession.query(Order).join(User).all()
-    result = []
 
-    for o in orders:
-        items = [
-            {
-                "menu_item_id": i.menu_item_id,
-                "menu_name": i.menu.name if i.menu else None,
-                "quantity": i.quantity,
-                "price": i.price,
-                "subtotal": i.quantity * i.price
-            }
-            for i in o.items
-        ]
-
-        result.append({
-            "order_id": o.id,
-            "customer": {
-                "id": o.customer_id,
-                "email": o.customer.email
-            },
+    return [
+        {
+            "id": o.id,
+            "customer": o.customer.email,
             "total": o.total,
             "status": o.status,
             "payment_status": o.payment_status,
-            "payment_method": o.payment_method,
-            "items": items
-        })
-
-    return result
+            "items": [
+                {
+                    "menu_name": i.menu.name,
+                    "quantity": i.quantity,
+                    "price": i.price,
+                    "subtotal": i.quantity * i.price
+                }
+                for i in o.items
+            ]
+        }
+        for o in orders
+    ]
 
 
 # ======================================================
-# ADMIN - VERIFY PAYMENT
+# OWNER - VERIFY PAYMENT
 # ======================================================
 @view_config(route_name="admin_verify_order", renderer="json", request_method="POST")
 @require_auth
-@require_role("admin")
+@require_role("owner")
 def admin_verify_payment(request):
     order_id = int(request.matchdict["id"])
-    data = request.json_body
-
-    action = data.get("action")
-    if action not in ("approve", "reject"):
-        return Response(
-            json={"error": "Action must be approve or reject"},
-            status=400
-        )
+    action = request.json_body.get("action")
 
     order = request.dbsession.get(Order, order_id)
     if not order:
         return Response(json={"error": "Order not found"}, status=404)
 
-    if order.payment_status != PAYMENT_WAITING_VERIFICATION:
-        return Response(
-            json={"error": "Order not waiting verification"},
-            status=400
-        )
-
     if action == "approve":
         order.payment_status = PAYMENT_PAID
         order.status = ORDER_CONFIRMED
-
-    if action == "reject":
+    elif action == "reject":
         order.payment_status = PAYMENT_REJECTED
         order.status = ORDER_CANCELLED
+    else:
+        return Response(json={"error": "Invalid action"}, status=400)
 
     request.dbsession.commit()
-
-    return {
-        "message": f"Order {action}d",
-        "order_id": order.id,
-        "status": order.status,
-        "payment_status": order.payment_status
-    }
+    return {"message": "Order updated"}

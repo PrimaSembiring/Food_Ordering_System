@@ -1,15 +1,23 @@
+from logging import config
+
+
 def includeme(config):
-    # =====================
-    # AUTH
-    # =====================
-    config.add_route("register", "/api/auth/register")
-    config.add_route("login", "/api/auth/login")
+    config.add_route("login", "/api/login")
+    config.add_route("register", "/api/register")
+
 
     # =====================
     # MENU
     # =====================
     config.add_route("menu_list", "/api/menu")
     config.add_route("menu_detail", "/api/menu/{id}")
+    
+    # =====================
+    # OWNER - MENU CRUD
+    # =====================
+    config.add_route("owner_menu", "/api/owner/menu")
+    config.add_route("owner_menu_detail", "/api/owner/menu/{id}")
+
 
     # =====================
     # ORDERS

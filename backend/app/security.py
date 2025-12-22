@@ -1,7 +1,8 @@
 from pyramid.response import Response
 from passlib.context import CryptContext
-from app.jwt import decode_access_token
 from passlib.exc import UnknownHashError
+from functools import wraps
+from app.jwt import decode_access_token
 
 # =========================
 # PASSWORD HASHING
@@ -22,10 +23,14 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 # =========================
-# JWT AUTH DECORATOR
+# AUTH (JWT)
 # =========================
 def require_auth(view_func):
     def wrapper(request):
+        # 🔑 BIARKAN PREFLIGHT OPTIONS LEWAT
+        if request.method == "OPTIONS":
+            return view_func(request)
+
         auth_header = request.headers.get("Authorization")
 
         if not auth_header or not auth_header.startswith("Bearer "):
@@ -50,17 +55,26 @@ def require_auth(view_func):
 
 
 # =========================
-# ROLE-BASED AUTH
+# ROLE CHECK
 # =========================
 def require_role(*roles):
     def decorator(view_func):
-        def wrapper(request):
+        @wraps(view_func)
+        def wrapper(request, *args, **kwargs):
             user = getattr(request, "user", None)
-            if not user or user.get("role") not in roles:
+
+            if not user:
+                return Response(
+                    json={"error": "Unauthorized"},
+                    status=401
+                )
+
+            if user.get("role") not in roles:
                 return Response(
                     json={"error": "Forbidden"},
                     status=403
                 )
-            return view_func(request)
+
+            return view_func(request, *args, **kwargs)
         return wrapper
     return decorator
