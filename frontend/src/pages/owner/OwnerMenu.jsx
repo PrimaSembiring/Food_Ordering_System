@@ -56,7 +56,7 @@ export default function OwnerMenu() {
   };
 
   // =====================
-  // TOGGLE ACTIVE
+  // TOGGLE ACTIVE (SOFT DELETE)
   // =====================
   const toggleMenu = async (menu) => {
     try {
@@ -65,24 +65,7 @@ export default function OwnerMenu() {
       });
       fetchMenu();
     } catch {
-      alert("Gagal update menu");
-    }
-  };
-
-  // =====================
-  // DELETE MENU
-  // =====================
-  const deleteMenu = async (id) => {
-    if (!window.confirm("Yakin hapus menu?")) return;
-
-    try {
-      await api.delete(`/owner/menu/${id}`);
-      fetchMenu();
-    } catch (err) {
-      alert(
-        err.response?.data?.error ||
-          "Menu tidak bisa dihapus (sudah pernah dipesan)"
-      );
+      alert("Gagal update status menu");
     }
   };
 
@@ -102,14 +85,22 @@ export default function OwnerMenu() {
     }
   };
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <p style={{ padding: 20 }}>Loading...</p>;
 
   return (
-    <div style={{ maxWidth: 800, margin: "auto" }}>
-      <h1>Menu Owner</h1>
+    <div style={{ padding: 30, maxWidth: 900, margin: "auto" }}>
+      <h1 style={{ marginBottom: 20 }}>🍽️ Manajemen Menu</h1>
 
-      {/* FORM ADD MENU */}
-      <form onSubmit={addMenu} style={{ marginBottom: 30 }}>
+      {/* ================= FORM ADD MENU ================= */}
+      <form
+        onSubmit={addMenu}
+        style={{
+          display: "flex",
+          gap: 10,
+          marginBottom: 30,
+          flexWrap: "wrap",
+        }}
+      >
         <input
           placeholder="Nama menu"
           value={form.name}
@@ -129,18 +120,25 @@ export default function OwnerMenu() {
           onChange={(e) => setForm({ ...form, price: e.target.value })}
           required
         />
-        <button type="submit">Tambah Menu</button>
+        <button type="submit" style={btnPrimary}>
+          Tambah Menu
+        </button>
       </form>
 
-      {/* LIST MENU */}
+      {/* ================= LIST MENU ================= */}
+      {menus.length === 0 && <p>Belum ada menu</p>}
+
       {menus.map((menu) => (
         <div
           key={menu.id}
           style={{
-            border: "1px solid #444",
-            padding: 15,
-            marginBottom: 10,
+            border: "1px solid #ddd",
+            borderRadius: 10,
+            padding: 16,
+            marginBottom: 12,
+            background: "#fff",
             opacity: menu.available ? 1 : 0.5,
+            boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
           }}
         >
           {editingId === menu.id ? (
@@ -158,39 +156,52 @@ export default function OwnerMenu() {
                   setEditForm({ ...editForm, price: e.target.value })
                 }
               />
-              <button onClick={() => saveEdit(menu.id)}>Simpan</button>
-              <button onClick={() => setEditingId(null)}>Batal</button>
+              <button
+                onClick={() => saveEdit(menu.id)}
+                style={btnPrimary}
+              >
+                Simpan
+              </button>
+              <button
+                onClick={() => setEditingId(null)}
+                style={btn}
+              >
+                Batal
+              </button>
             </>
           ) : (
             <>
               <h3>{menu.name}</h3>
               <p>Kategori: {menu.category}</p>
               <p>Harga: Rp {menu.price}</p>
-              <p>Status: {menu.available ? "Aktif" : "Nonaktif"}</p>
+              <p>
+                Status:{" "}
+                <b style={{ color: menu.available ? "green" : "red" }}>
+                  {menu.available ? "Aktif" : "Nonaktif"}
+                </b>
+              </p>
 
-              <button onClick={() => toggleMenu(menu)}>
-                {menu.available ? "Nonaktifkan" : "Aktifkan"}
-              </button>
+              <div style={{ marginTop: 10 }}>
+                <button
+                  onClick={() => toggleMenu(menu)}
+                  style={menu.available ? btnDanger : btnPrimary}
+                >
+                  {menu.available ? "Nonaktifkan" : "Aktifkan"}
+                </button>
 
-              <button
-                onClick={() => {
-                  setEditingId(menu.id);
-                  setEditForm({
-                    name: menu.name,
-                    price: menu.price,
-                  });
-                }}
-                style={{ marginLeft: 10 }}
-              >
-                Edit
-              </button>
-
-              <button
-                onClick={() => deleteMenu(menu.id)}
-                style={{ marginLeft: 10, color: "red" }}
-              >
-                Hapus
-              </button>
+                <button
+                  onClick={() => {
+                    setEditingId(menu.id);
+                    setEditForm({
+                      name: menu.name,
+                      price: menu.price,
+                    });
+                  }}
+                  style={{ ...btn, marginLeft: 8 }}
+                >
+                  Edit
+                </button>
+              </div>
             </>
           )}
         </div>
@@ -198,3 +209,28 @@ export default function OwnerMenu() {
     </div>
   );
 }
+
+/* ================= STYLES ================= */
+
+const btn = {
+  padding: "8px 14px",
+  borderRadius: 6,
+  border: "1px solid #ccc",
+  background: "#f9f9f9",
+  cursor: "pointer",
+};
+
+const btnPrimary = {
+  ...btn,
+  background: "#f97316",
+  color: "white",
+  border: "none",
+  fontWeight: "bold",
+};
+
+const btnDanger = {
+  ...btn,
+  background: "#dc2626",
+  color: "white",
+  border: "none",
+};

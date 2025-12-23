@@ -22,7 +22,13 @@ export default function AuthModal({ open, onClose, onSuccess }) {
       setAuth(access_token, role);
 
       onClose();
-      onSuccess();
+
+      // 🔥 INI KUNCI UTAMANYA
+      if (role === "owner") {
+        onSuccess("/owner/orders");
+      } else {
+        onSuccess("/menu");
+      }
     } catch {
       setError("Login gagal");
     }
@@ -44,30 +50,17 @@ export default function AuthModal({ open, onClose, onSuccess }) {
   };
 
   return (
-    /* 🔥 FIX UTAMA ADA DI SINI */
-    <div
-      className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999]"
-      onClick={onClose}
-    >
-      {/* STOP PROPAGATION BIAR MODAL BISA DIKLIK */}
-      <div
-        className="bg-zinc-900 p-6 rounded w-80 text-white relative"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          className="absolute top-2 right-3 text-white text-xl"
-          onClick={onClose}
-        >
-          ✕
-        </button>
+    <div style={overlay} onClick={onClose}>
+      <div style={modal} onClick={(e) => e.stopPropagation()}>
+        <button style={closeBtn} onClick={onClose}>✕</button>
 
-        <h2 className="text-xl mb-4 capitalize">
+        <h2 style={{ marginBottom: 16 }}>
           {mode === "login" ? "Login" : "Register"}
         </h2>
 
         {mode === "register" && (
           <input
-            className="w-full mb-2 p-2 bg-zinc-800 rounded"
+            style={input}
             placeholder="Nama"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -75,54 +68,37 @@ export default function AuthModal({ open, onClose, onSuccess }) {
         )}
 
         <input
-          className="w-full mb-2 p-2 bg-zinc-800 rounded"
+          style={input}
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
 
         <input
+          style={input}
           type="password"
-          className="w-full mb-3 p-2 bg-zinc-800 rounded"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        {error && <p className="text-red-500 mb-2">{error}</p>}
+        {error && <p style={{ color: "red" }}>{error}</p>}
 
         {mode === "login" ? (
           <>
-            <button
-              className="w-full bg-white text-black p-2 rounded"
-              onClick={handleLogin}
-            >
+            <button style={primaryBtn} onClick={handleLogin}>
               Login
             </button>
-
-            {/* 🔥 GANTI TEXT JADI BUTTON */}
-            <button
-              type="button"
-              className="mt-3 text-sm text-blue-400 underline w-full"
-              onClick={() => setMode("register")}
-            >
+            <button style={linkBtn} onClick={() => setMode("register")}>
               Belum punya akun? Register
             </button>
           </>
         ) : (
           <>
-            <button
-              className="w-full bg-white text-black p-2 rounded"
-              onClick={handleRegister}
-            >
+            <button style={primaryBtn} onClick={handleRegister}>
               Register
             </button>
-
-            <button
-              type="button"
-              className="mt-3 text-sm text-blue-400 underline w-full"
-              onClick={() => setMode("login")}
-            >
+            <button style={linkBtn} onClick={() => setMode("login")}>
               Sudah punya akun? Login
             </button>
           </>
@@ -131,3 +107,63 @@ export default function AuthModal({ open, onClose, onSuccess }) {
     </div>
   );
 }
+
+/* ================= STYLES ================= */
+
+const overlay = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(0,0,0,0.7)",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  zIndex: 9999,
+};
+
+const modal = {
+  background: "#111",
+  color: "white",
+  padding: 24,
+  borderRadius: 10,
+  width: 320,
+  position: "relative",
+};
+
+const closeBtn = {
+  position: "absolute",
+  top: 8,
+  right: 12,
+  background: "none",
+  border: "none",
+  color: "white",
+  fontSize: 18,
+  cursor: "pointer",
+};
+
+const input = {
+  width: "100%",
+  padding: 10,
+  marginBottom: 10,
+  borderRadius: 6,
+  border: "none",
+};
+
+const primaryBtn = {
+  width: "100%",
+  padding: 10,
+  marginTop: 10,
+  borderRadius: 6,
+  border: "none",
+  background: "#f97316",
+  color: "white",
+  fontWeight: "bold",
+  cursor: "pointer",
+};
+
+const linkBtn = {
+  marginTop: 10,
+  background: "none",
+  border: "none",
+  color: "#60a5fa",
+  cursor: "pointer",
+};

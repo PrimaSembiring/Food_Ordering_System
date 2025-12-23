@@ -2,8 +2,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 /* ================= PUBLIC ================= */
 import Landing from "./pages/Landing";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
 
 /* ================= CUSTOMER ================= */
 import CustomerLayout from "./pages/CustomerLayout";
@@ -11,46 +9,41 @@ import Menu from "./pages/Menu";
 import OrderHistory from "./pages/OrderHistory";
 
 /* ================= OWNER ================= */
-// (disiapkan, tapi belum aktif)
-// import OwnerLayout from "./pages/owner/OwnerLayout";
-// import OwnerDashboard from "./pages/owner/OwnerDashboard";
-// import OwnerMenu from "./pages/owner/OwnerMenu";
-// import OwnerOrders from "./pages/owner/OwnerOrders";
+import OwnerLayout from "./pages/owner/OwnerLayout";
+import OwnerOrders from "./pages/owner/OwnerOrders";
+import OwnerMenu from "./pages/owner/OwnerMenu";
 
 /* ================= AUTH ================= */
 import { getToken, getRole } from "./utils/auth";
 
-/* ================= PROTECTED ROUTE ================= */
+/* ================= ROUTE GUARDS ================= */
 function CustomerRoute({ children }) {
   const token = getToken();
   const role = getRole();
 
-  if (!token) return <Navigate to="/login" replace />;
+  if (!token) return <Navigate to="/" replace />;
   if (role !== "customer") return <Navigate to="/" replace />;
 
   return children;
 }
 
-/*
 function OwnerRoute({ children }) {
   const token = getToken();
   const role = getRole();
 
-  if (!token) return <Navigate to="/login" replace />;
+  if (!token) return <Navigate to="/" replace />;
   if (role !== "owner") return <Navigate to="/" replace />;
 
   return children;
 }
-*/
 
+/* ================= APP ================= */
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* ================= PUBLIC ================= */}
+        {/* ================= LANDING ================= */}
         <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
 
         {/* ================= CUSTOMER ================= */}
         <Route
@@ -64,8 +57,7 @@ export default function App() {
           <Route path="/orders" element={<OrderHistory />} />
         </Route>
 
-        {/* ================= OWNER (NANTI) ================= */}
-        {/*
+        {/* ================= OWNER ================= */}
         <Route
           element={
             <OwnerRoute>
@@ -73,11 +65,9 @@ export default function App() {
             </OwnerRoute>
           }
         >
-          <Route path="/owner" element={<OwnerDashboard />} />
-          <Route path="/owner/menu" element={<OwnerMenu />} />
           <Route path="/owner/orders" element={<OwnerOrders />} />
+          <Route path="/owner/menu" element={<OwnerMenu />} />
         </Route>
-        */}
 
         {/* ================= FALLBACK ================= */}
         <Route path="*" element={<Navigate to="/" replace />} />
